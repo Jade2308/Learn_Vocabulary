@@ -134,9 +134,25 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
   - Tái cấu trúc [`app/cram/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/cram/page.tsx): Xây dựng 6 chế độ luyện tập: Nhìn nghĩa gõ từ (`meaning_type`), Trắc nghiệm (`quiz`), Ghép thẻ nối cặp (`matching`), Sắp xếp chữ cái (`scramble`), Điền từ vào câu (`fill`), Nghe chép chính tả (`dictation`).
   - Toàn bộ đều phát âm tức thì qua Web Speech API (0ms delay), có gợi ý chữ cái đầu và tổng kết điểm số kèm pháo hoa giấy confetti sinh động.
 
+### 10. Xóa sạch Database và đưa hệ thống về trạng thái sẵn sàng Production
+- **Nhu cầu:** Dọn sạch toàn bộ các từ vựng và lịch sử học thử nghiệm trong quá trình phát triển để sẵn sàng đón nhận người dùng thật.
+- **Xử lý:**
+  - Xóa toàn bộ dữ liệu trong các bảng: `review_logs` (0), `daily_study_stats` (0), `user_vocabulary` (0), `words` (0).
+  - Giữ nguyên demo user trong `auth.users` để đảm bảo foreign key toàn vẹn cho khách truy cập.
+
+### 11. Triển khai chính thức lên Vercel (Production Deployment)
+- **Địa chỉ Production:** [https://learn-vocabulary-psi.vercel.app](https://learn-vocabulary-psi.vercel.app)
+- **Kho GitHub đồng bộ:** [https://github.com/Jade2308/Learn_Vocabulary](https://github.com/Jade2308/Learn_Vocabulary)
+- **Cấu hình môi trường:** Đã nạp đầy đủ các biến môi trường Production & Preview trên Vercel:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `GEMINI_API_KEY`
+- **Kết quả:** Đã kiểm tra trực tiếp qua mạng Internet, trang chủ phản hồi HTTP 200 OK, các API tra cứu và làm giàu dữ liệu hoạt động trơn tru.
+
 ---
 
 ## 5. Các bước tiếp theo (Next Steps / Roadmap)
 - [ ] Tích hợp giao diện đăng nhập / đăng ký chính thức qua Google OAuth & Email (Supabase Auth UI).
 - [ ] Thiết lập Cron Job dọn dẹp `review_logs > 60 ngày` trên Supabase (như quy định trong `PROJECT.md`).
-- [ ] Triển khai dự án lên Vercel và cấu hình biến môi trường production.
+- [x] Triển khai dự án lên Vercel và cấu hình biến môi trường production.
