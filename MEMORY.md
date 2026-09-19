@@ -43,11 +43,18 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
 - [`components/Navbar.tsx`](file:///d:/DATA/Learn_Vocabulary/components/Navbar.tsx): Thanh điều hướng hiện đại (Tổng quan, Thêm từ mới, Ôn tập thông minh, Luyện tập cấp tốc).
 - [`app/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/page.tsx): Dashboard hiển thị số từ cần ôn hôm nay, tổng từ trong kho, danh mục chủ đề và lối tắt luyện tập nhanh.
 - [`app/words/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/words/page.tsx): Form thêm từ và hiển thị kết quả làm giàu dữ liệu chi tiết (IPA, phát âm từ vựng chính, phát âm từng biến thể các dạng từ liên quan, nghe phát âm câu ví dụ ngữ pháp và ví dụ song ngữ).
-- [`app/review/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/review/page.tsx): Flashcard tương tác lật 2 mặt kèm 4 nút phản hồi tự nhiên (Chưa nhớ, Hơi khó, Đã nhớ, Rất thuộc), hỗ trợ nghe phát âm mặt trước và nghe phát âm mọi thành phần ở mặt sau (từ chính, họ từ, cấu trúc, câu ví dụ có `e.stopPropagation()`), hiệu ứng confetti khi hoàn thành.
-- [`app/cram/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/cram/page.tsx): Chế độ Luyện tập cấp tốc trước kỳ thi hoặc phỏng vấn với 3 dạng bài tập riêng biệt:
-  1. Trắc nghiệm chọn nghĩa đúng.
-  2. Điền từ vào chỗ trống trong câu ví dụ.
-  3. Nghe phát âm và chép chính tả từ vựng.
+- [`app/review/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/review/page.tsx): Flashcard tương tác hỗ trợ **đảo chiều linh hoạt 2 hướng**:
+  1. **Tiếng Anh $\rightarrow$ Tiếng Việt**: Thấy từ vựng, phiên âm IPA, nghe phát âm $\rightarrow$ lật xem nghĩa, các dạng từ liên quan, cụm giới từ, ví dụ song ngữ.
+  2. **Tiếng Việt $\rightarrow$ Tiếng Anh**: Thấy nghĩa tiếng Việt, gợi ý chủ đề $\rightarrow$ lật xem từ tiếng Anh, phát âm và ví dụ.
+  - Tích hợp **chế độ Tự kiểm tra (Active Recall Typing)**: Bật/tắt ô gõ từ trước khi lật thẻ, chấm điểm tức thì và so khớp câu trả lời.
+  - Kèm 4 nút phản hồi tự nhiên (Chưa nhớ, Hơi khó, Đã nhớ, Rất thuộc), phát âm Web Speech API 0ms delay, hiệu ứng confetti chúc mừng.
+- [`app/cram/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/cram/page.tsx): Trung tâm Luyện tập cấp tốc & Đa dạng với **6 chế độ luyện tập độc đáo**:
+  1. **Nhìn nghĩa gõ từ (`meaning_type`)**: Xem nghĩa tiếng Việt $\rightarrow$ gõ từ tiếng Anh tương ứng với số ký tự, nút gợi ý chữ cái đầu và phát âm tự động.
+  2. **Trắc nghiệm nhanh (`quiz`)**: Chọn 1 trong 4 đáp án đúng (tự động tạo phương án gây nhiễu thông minh).
+  3. **Nối thẻ từ vựng (`matching`)**: Trò chơi ghép cặp thẻ tiếng Anh và tiếng Việt theo từng vòng, hiệu ứng triệt tiêu thẻ mượt mà.
+  4. **Sắp xếp chữ cái (`scramble`)**: Bấm chọn các ký tự xáo trộn để ghép thành từ đúng, rèn trí nhớ mặt chữ và chính tả.
+  5. **Điền từ vào câu (`fill`)**: Đọc ngữ cảnh ví dụ thực tế và điền từ thích hợp vào chỗ trống.
+  6. **Nghe & Chép chính tả (`dictation`)**: Luyện nghe phát âm bản xứ và gõ lại từ vựng chính xác.
 
 ### E. Kiểm thử tự động (`test-cases.js`)
 - Đã xây dựng kịch bản kiểm thử tự động 6 ca kiểm tra:
@@ -119,6 +126,13 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
   - Bổ sung danh sách mô hình dự phòng: `['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.7-flash']` trong [`lib/ai/gemini.ts`](file:///d:/DATA/Learn_Vocabulary/lib/ai/gemini.ts).
   - Tự động chờ 1 giây và thử lại nếu gặp lỗi quá tải tạm thời trước khi chuyển sang model kế tiếp.
   - Chuẩn hóa thông báo lỗi thân thiện tại [`app/api/words/route.ts`](file:///d:/DATA/Learn_Vocabulary/app/api/words/route.ts) để không hiển thị chuỗi JSON thô cho người dùng.
+
+### 9. Mở rộng hệ sinh thái các chế độ ôn tập (Flashcard 2 chiều, Nhìn nghĩa gõ từ, Ghép cặp, Sắp xếp chữ cái)
+- **Nhu cầu:** Người học cần thêm nhiều phương thức ôn tập ngoài Flashcard truyền thống: Flashcard tiếng Việt (đoán từ tiếng Anh), Nhìn nghĩa gõ từ (Active Recall), Ghép cặp từ vựng (Matching Game), Sắp xếp chữ cái (Scramble),...
+- **Xử lý:**
+  - Nâng cấp [`app/review/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/review/page.tsx): Thêm thanh công cụ chọn chiều lật (Anh $\rightarrow$ Việt hoặc Việt $\rightarrow$ Anh), lưu cấu hình vào `localStorage`, tích hợp ô gõ từ trực tiếp vào mặt trước để tự kiểm tra trước khi lật đáp án.
+  - Tái cấu trúc [`app/cram/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/cram/page.tsx): Xây dựng 6 chế độ luyện tập: Nhìn nghĩa gõ từ (`meaning_type`), Trắc nghiệm (`quiz`), Ghép thẻ nối cặp (`matching`), Sắp xếp chữ cái (`scramble`), Điền từ vào câu (`fill`), Nghe chép chính tả (`dictation`).
+  - Toàn bộ đều phát âm tức thì qua Web Speech API (0ms delay), có gợi ý chữ cái đầu và tổng kết điểm số kèm pháo hoa giấy confetti sinh động.
 
 ---
 
