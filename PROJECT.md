@@ -1,4 +1,4 @@
-# PROJECT.md — Vocab SRS App
+# PROJECT.md — Learn Vocabulary
 
 > File này mô tả toàn bộ ngữ cảnh kỹ thuật của dự án để một coding agent (Claude Code, Cursor, v.v.) có thể đọc và bắt đầu triển khai mà không cần hỏi lại các quyết định kiến trúc cơ bản.
 
@@ -6,10 +6,12 @@
 
 ## 1. Tổng quan
 
-**Tên dự án:** Vocab SRS App (tạm đặt)
-**Mô tả 1 dòng:** Web app học từ vựng tiếng Anh — nhập một từ, hệ thống tự động làm giàu dữ liệu (phát âm, ví dụ, giới từ, họ từ, chủ đề) bằng AI, sau đó ôn tập theo thuật toán lặp lại ngắt quãng (SM-2), có chế độ ôn gấp trước kỳ thi.
+**Tên dự án:** Learn Vocabulary (trước đây là Vocab SRS App)
+**Mô tả 1 dòng:** Web app học từ vựng tiếng Anh — nhập một từ, hệ thống tự động làm giàu dữ liệu (phát âm, ví dụ, giới từ, họ từ, chủ đề) bằng AI, sau đó ôn tập theo phương pháp ghi nhớ thông minh, có chế độ luyện tập cấp tốc trước kỳ thi.
 
-**Ràng buộc thiết kế quan trọng nhất:** chi phí vận hành phải gần 0đ ở giai đoạn MVP/vài nghìn người dùng đầu. Mọi quyết định kỹ thuật (dedupe dữ liệu, không lưu file audio, cache kết quả AI...) đều phục vụ ràng buộc này — **không tự ý đổi sang giải pháp tốn phí hơn** nếu không có yêu cầu rõ ràng.
+**Ràng buộc thiết kế quan trọng:**
+1. **Chi phí vận hành:** Gần 0đ ở giai đoạn MVP/vài nghìn người dùng đầu. Mọi quyết định kỹ thuật (dedupe dữ liệu, không lưu file audio, cache kết quả AI...) đều phục vụ ràng buộc này — **không tự ý đổi sang giải pháp tốn phí hơn** nếu không có yêu cầu rõ ràng.
+2. **Trải nghiệm người dùng:** Giao diện người dùng và câu từ mô tả hoàn toàn không sử dụng các thuật ngữ chuyên môn gây khó hiểu (như SRS, SM-2, Cram Mode). Tất cả nhãn, hướng dẫn, phản hồi phải trực quan, tự nhiên và dễ hiểu cho mọi lứa tuổi và trình độ.
 
 ---
 

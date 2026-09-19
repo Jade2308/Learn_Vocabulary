@@ -8,10 +8,10 @@ export default function Navbar() {
   const pathname = usePathname();
 
   const navItems = [
-    { href: '/', label: 'Dashboard', icon: BookOpen },
-    { href: '/words', label: 'Thêm & Tra cứu từ', icon: PlusCircle },
-    { href: '/review', label: 'Ôn tập SRS', icon: Layers },
-    { href: '/cram', label: 'Ôn gấp (Cram Mode)', icon: Zap },
+    { href: '/', label: 'Tổng quan', icon: BookOpen },
+    { href: '/words', label: 'Thêm từ mới', icon: PlusCircle },
+    { href: '/review', label: 'Ôn tập thông minh', icon: Layers },
+    { href: '/cram', label: 'Luyện tập cấp tốc', icon: Zap },
   ];
 
   return (
@@ -21,7 +21,7 @@ export default function Navbar() {
           <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
             <Sparkles className="w-5 h-5" />
           </div>
-          <span>Vocab SRS</span>
+          <span>Learn Vocabulary</span>
         </Link>
 
         <nav className="flex items-center gap-1 sm:gap-2">

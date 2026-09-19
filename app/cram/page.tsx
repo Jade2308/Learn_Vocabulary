@@ -68,7 +68,7 @@ export default function CramPage() {
         setCompleted(false);
         resetTurn();
       } else {
-        alert(data.message || 'Chưa có từ vựng nào trong danh mục này để ôn gấp!');
+        alert(data.message || 'Chưa có từ vựng nào trong chủ đề này để luyện tập!');
       }
     } catch (err) {
       console.error('Error starting cram session:', err);
@@ -102,11 +102,11 @@ export default function CramPage() {
       <div className="max-w-xl mx-auto space-y-6">
         <div className="text-center space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 text-xs font-semibold">
-            <Zap className="w-3.5 h-3.5" /> Chế độ ôn gấp trước kỳ thi
+            <Zap className="w-3.5 h-3.5" /> Luyện tập tăng cường & Cấp tốc
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Cram Mode</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Luyện tập cấp tốc</h1>
           <p className="text-zinc-500 text-sm">
-            Luyện tập cấp tốc qua 3 dạng bài tập (Trắc nghiệm, Điền từ, Nghe-chép). Không ảnh hưởng tới hàng đợi lịch học SRS thông thường!
+            Ôn luyện linh hoạt qua 3 dạng bài tập thú vị: Trắc nghiệm, Điền từ và Nghe chép từ. Bạn có thể luyện tập bất kỳ lúc nào mà không làm ảnh hưởng đến lịch nhắc nhở hàng ngày!
           </p>
         </div>
 
@@ -188,10 +188,10 @@ export default function CramPage() {
           <button
             onClick={startCramSession}
             disabled={loading}
-            className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-            <span>Bắt đầu ôn gấp</span>
+            <span>Bắt đầu luyện tập</span>
           </button>
         </div>
       </div>
@@ -205,17 +205,17 @@ export default function CramPage() {
           <Award className="w-8 h-8" />
         </div>
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold">Hoàn thành phiên Cram!</h2>
+          <h2 className="text-2xl font-bold">Hoàn thành bài luyện tập!</h2>
           <p className="text-zinc-500 text-sm">
             Bạn trả lời đúng <span className="font-bold text-emerald-600">{score}</span> / {words.length} câu
           </p>
         </div>
         <button
           onClick={() => setSessionStarted(false)}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium text-sm transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium text-sm transition-colors cursor-pointer"
         >
           <RotateCcw className="w-4 h-4" />
-          <span>Ôn tập phiên khác</span>
+          <span>Luyện tập lượt khác</span>
         </button>
       </div>
     );

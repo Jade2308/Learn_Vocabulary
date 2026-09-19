@@ -163,12 +163,22 @@ export default function ReviewPage() {
 
             {word?.word_family && word.word_family.length > 0 && (
               <div>
-                <span className="text-xs font-semibold uppercase text-zinc-400">Họ từ</span>
-                <div className="flex flex-wrap gap-1.5 mt-1">
+                <span className="text-xs font-semibold uppercase text-zinc-400">Các dạng từ liên quan</span>
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {word.word_family.map((wf, idx) => (
-                    <span key={idx} className="text-xs px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-800">
-                      <strong>{wf.word}</strong> ({wf.part_of_speech}): {wf.meaning_vi}
-                    </span>
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playAudio(wf.word);
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600 dark:hover:text-emerald-400 border border-transparent hover:border-emerald-200 dark:hover:border-emerald-800 transition-colors cursor-pointer"
+                      title={`Phát âm: ${wf.word}`}
+                    >
+                      <span><strong>{wf.word}</strong> ({wf.part_of_speech}): {wf.meaning_vi}</span>
+                      <Volume2 className="w-3 h-3 text-zinc-400 hover:text-emerald-600" />
+                    </button>
                   ))}
                 </div>
               </div>
@@ -177,10 +187,28 @@ export default function ReviewPage() {
             {word?.prepositions && word.prepositions.length > 0 && (
               <div>
                 <span className="text-xs font-semibold uppercase text-zinc-400">Cấu trúc</span>
-                <div className="space-y-1 mt-1">
+                <div className="space-y-1.5 mt-1.5">
                   {word.prepositions.slice(0, 2).map((p, idx) => (
-                    <div key={idx} className="text-xs text-zinc-600 dark:text-zinc-400">
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">{p.pattern}</span>: {p.explanation}
+                    <div key={idx} className="text-xs text-zinc-600 dark:text-zinc-400 flex items-start justify-between gap-2 p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/40">
+                      <div className="flex-1">
+                        <div><span className="font-semibold text-emerald-600 dark:text-emerald-400">{p.pattern}</span>: {p.explanation}</div>
+                        {p.example && (
+                          <div className="italic text-zinc-500 text-[11px] mt-0.5">&ldquo;{p.example}&rdquo;</div>
+                        )}
+                      </div>
+                      {p.example && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            playAudio(p.example!);
+                          }}
+                          className="p-1 rounded text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer shrink-0"
+                          title="Nghe câu cấu trúc"
+                        >
+                          <Volume2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -190,9 +218,26 @@ export default function ReviewPage() {
             {word?.examples && word.examples.length > 0 && (
               <div>
                 <span className="text-xs font-semibold uppercase text-zinc-400">Ví dụ</span>
-                <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 text-xs space-y-1 mt-1">
-                  <p className="font-medium text-zinc-900 dark:text-zinc-100">{word.examples[0].en}</p>
-                  <p className="text-zinc-500">{word.examples[0].vi}</p>
+                <div className="space-y-1.5 mt-1.5">
+                  {word.examples.slice(0, 2).map((ex, idx) => (
+                    <div key={idx} className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 text-xs flex items-start justify-between gap-2">
+                      <div className="space-y-0.5 flex-1">
+                        <p className="font-medium text-zinc-900 dark:text-zinc-100">{ex.en}</p>
+                        <p className="text-zinc-500">{ex.vi}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          playAudio(ex.en);
+                        }}
+                        className="p-1 rounded text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer shrink-0 mt-0.5"
+                        title="Nghe câu ví dụ tiếng Anh"
+                      >
+                        <Volume2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -205,34 +250,34 @@ export default function ReviewPage() {
           <button
             onClick={() => handleRating(1)}
             disabled={submitting}
-            className="py-3 px-2 rounded-2xl bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 font-semibold text-xs sm:text-sm flex flex-col items-center gap-1 transition-all"
+            className="py-3 px-2 rounded-2xl bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 font-semibold text-xs sm:text-sm flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
-            <span>Quên (1)</span>
-            <span className="text-[10px] opacity-75">1 ngày</span>
+            <span>Chưa nhớ</span>
+            <span className="text-[10px] opacity-75">Ôn lại sớm</span>
           </button>
           <button
             onClick={() => handleRating(2)}
             disabled={submitting}
-            className="py-3 px-2 rounded-2xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900 font-semibold text-xs sm:text-sm flex flex-col items-center gap-1 transition-all"
+            className="py-3 px-2 rounded-2xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900 font-semibold text-xs sm:text-sm flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
-            <span>Khó (2)</span>
-            <span className="text-[10px] opacity-75">Gần</span>
+            <span>Hơi khó</span>
+            <span className="text-[10px] opacity-75">Sắp nhớ</span>
           </button>
           <button
             onClick={() => handleRating(3)}
             disabled={submitting}
-            className="py-3 px-2 rounded-2xl bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900 font-semibold text-xs sm:text-sm flex flex-col items-center gap-1 transition-all"
+            className="py-3 px-2 rounded-2xl bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900 font-semibold text-xs sm:text-sm flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
-            <span>Tốt (3)</span>
-            <span className="text-[10px] opacity-75">Chuẩn</span>
+            <span>Đã nhớ</span>
+            <span className="text-[10px] opacity-75">Ôn định kỳ</span>
           </button>
           <button
             onClick={() => handleRating(4)}
             disabled={submitting}
-            className="py-3 px-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900 font-semibold text-xs sm:text-sm flex flex-col items-center gap-1 transition-all"
+            className="py-3 px-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900 font-semibold text-xs sm:text-sm flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
-            <span>Dễ (4)</span>
-            <span className="text-[10px] opacity-75">Xa hơn</span>
+            <span>Rất thuộc</span>
+            <span className="text-[10px] opacity-75">Giãn cách xa</span>
           </button>
         </div>
       ) : (

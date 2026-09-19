@@ -48,7 +48,7 @@ export default function WordsPage() {
           Thêm & Tra cứu từ vựng
         </h1>
         <p className="text-zinc-500 text-sm">
-          Nhập một từ tiếng Anh — Gemini 2.5 Flash và Free Dictionary sẽ tự động làm giàu đầy đủ ngữ cảnh cho bạn
+          Nhập một từ tiếng Anh — Hệ thống sẽ tự động tra cứu phiên âm, nghĩa tiếng Việt, các dạng từ liên quan và ví dụ sinh động cho bạn
         </p>
       </div>
 
@@ -110,7 +110,7 @@ export default function WordsPage() {
             </div>
             <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
               <CheckCircle className="w-3.5 h-3.5" />
-              Đã thêm vào SRS
+              Đã lưu vào sổ từ vựng
             </span>
           </div>
 
@@ -123,12 +123,22 @@ export default function WordsPage() {
 
           {addedWord.word_family && addedWord.word_family.length > 0 && (
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">Họ từ (Word Family)</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">Các dạng từ liên quan (Word Family)</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {addedWord.word_family.map((wf, idx) => (
-                  <div key={idx} className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-sm">
-                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">{wf.word}</span>{' '}
-                    <span className="text-xs text-zinc-500 italic">({wf.part_of_speech})</span>: {wf.meaning_vi}
+                  <div key={idx} className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-sm flex items-center justify-between gap-2">
+                    <div className="flex-1">
+                      <span className="font-semibold text-zinc-900 dark:text-zinc-100">{wf.word}</span>{' '}
+                      <span className="text-xs text-zinc-500 italic">({wf.part_of_speech})</span>: {wf.meaning_vi}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => playAudio(wf.word)}
+                      title={`Phát âm từ: ${wf.word}`}
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors shrink-0 cursor-pointer"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -144,8 +154,16 @@ export default function WordsPage() {
                     <div className="font-semibold text-emerald-600 dark:text-emerald-400">{prep.pattern}</div>
                     <div className="text-zinc-600 dark:text-zinc-400 text-xs">{prep.explanation}</div>
                     {prep.example && (
-                      <div className="text-zinc-500 italic text-xs pt-1 border-t border-zinc-100 dark:border-zinc-800">
-                        &ldquo;{prep.example}&rdquo;
+                      <div className="text-zinc-500 italic text-xs pt-1.5 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2">
+                        <span>&ldquo;{prep.example}&rdquo;</span>
+                        <button
+                          type="button"
+                          onClick={() => playAudio(prep.example!)}
+                          title="Nghe câu ví dụ"
+                          className="p-1 rounded text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors shrink-0 cursor-pointer"
+                        >
+                          <Volume2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     )}
                   </div>
@@ -159,9 +177,19 @@ export default function WordsPage() {
               <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">Ví dụ song ngữ</h3>
               <div className="space-y-2">
                 {addedWord.examples.map((ex, idx) => (
-                  <div key={idx} className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-sm">
-                    <div className="font-medium text-zinc-900 dark:text-zinc-100">{ex.en}</div>
-                    <div className="text-zinc-500 dark:text-zinc-400 text-xs mt-0.5">{ex.vi}</div>
+                  <div key={idx} className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-sm flex items-start justify-between gap-3">
+                    <div className="flex-1 space-y-0.5">
+                      <div className="font-medium text-zinc-900 dark:text-zinc-100">{ex.en}</div>
+                      <div className="text-zinc-500 dark:text-zinc-400 text-xs">{ex.vi}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => playAudio(ex.en)}
+                      title="Nghe câu ví dụ tiếng Anh"
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors shrink-0 mt-0.5 cursor-pointer"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
               </div>

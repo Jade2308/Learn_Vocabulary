@@ -57,3 +57,4 @@ export async function fetchDictionaryData(word: string): Promise<DictionaryResul
     return { ipa: null, audio_url: null };
   }
 }
+

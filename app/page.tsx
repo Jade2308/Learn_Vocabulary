@@ -41,7 +41,7 @@ export default function DashboardPage() {
       <div className="p-8 rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-lg relative overflow-hidden">
         <div className="relative z-10 max-w-xl space-y-3">
           <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold uppercase tracking-wider">
-            Học tập ngắt quãng (SM-2)
+            Phương pháp ghi nhớ thông minh
           </span>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
             Nắm vững từ vựng tiếng Anh mỗi ngày
@@ -108,7 +108,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-lg">Chủ đề từ vựng của bạn</h2>
             <Link href="/cram" className="text-xs text-emerald-600 font-medium flex items-center gap-1 hover:underline">
-              Ôn theo chủ đề <ArrowRight className="w-3.5 h-3.5" />
+              Luyện tập theo chủ đề <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
@@ -128,15 +128,15 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Chế độ ôn gấp */}
+        {/* Chế độ luyện tập cấp tốc */}
         <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between space-y-4">
           <div className="space-y-2">
             <div className="inline-flex p-3 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600">
               <Zap className="w-6 h-6" />
             </div>
-            <h2 className="font-bold text-lg">Cram Mode — Ôn thi cấp tốc</h2>
+            <h2 className="font-bold text-lg">Luyện tập cấp tốc</h2>
             <p className="text-sm text-zinc-500 leading-relaxed">
-              Bạn có bài kiểm tra hoặc phỏng vấn sắp tới? Chọn chế độ ôn gấp để củng cố qua 3 dạng bài tập (trắc nghiệm, điền từ vào câu, nghe chép chính tả).
+              Bạn có bài kiểm tra hoặc cần ôn nhanh trước kỳ thi? Chọn chế độ này để củng cố từ vựng qua 3 dạng bài tập sinh động: trắc nghiệm, điền từ vào câu và nghe chép từ.
             </p>
           </div>
 
@@ -144,7 +144,7 @@ export default function DashboardPage() {
             href="/cram"
             className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm text-center transition-colors flex items-center justify-center gap-2"
           >
-            <span>Mở Cram Mode</span>
+            <span>Bắt đầu luyện tập ngay</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
