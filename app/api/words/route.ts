@@ -72,10 +72,29 @@ export async function POST(req: NextRequest) {
 
         wordRecord = insertedWord as Word;
       } catch (aiErr: unknown) {
-        const errMsg = aiErr instanceof Error ? aiErr.message : 'Error enriching word with AI';
+        let errMsg = 'Không thể tra cứu với AI vào lúc này. Vui lòng thử lại sau vài giây.';
+        if (aiErr instanceof Error) {
+          const rawMsg = aiErr.message;
+          try {
+            const parsed = JSON.parse(rawMsg);
+            if (parsed?.error?.code === 503 || parsed?.error?.status === 'UNAVAILABLE') {
+              errMsg = 'Máy chủ AI của Google đang có lượng truy cập đột biến. Bạn vui lòng bấm lại sau vài giây nhé!';
+            } else if (parsed?.error?.code === 429 || parsed?.error?.status === 'RESOURCE_EXHAUSTED') {
+              errMsg = 'Đã đạt giới hạn lượt gọi AI miễn phí trong phút này. Vui lòng đợi 30 giây rồi thử lại!';
+            } else if (parsed?.error?.message) {
+              errMsg = parsed.error.message;
+            }
+          } catch {
+            if (rawMsg.includes('503') || rawMsg.includes('high demand') || rawMsg.includes('UNAVAILABLE')) {
+              errMsg = 'Máy chủ AI của Google đang có lượng truy cập đột biến. Bạn vui lòng bấm lại sau vài giây nhé!';
+            } else {
+              errMsg = rawMsg;
+            }
+          }
+        }
         console.error('AI Enrichment Error:', aiErr);
         return NextResponse.json(
-          { error: `Không thể làm giàu từ với AI: ${errMsg}` },
+          { error: errMsg },
           { status: 502 }
         );
       }
