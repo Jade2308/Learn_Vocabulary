@@ -136,7 +136,7 @@ export default function DashboardPage() {
             </div>
             <h2 className="font-bold text-lg">Luyện tập cấp tốc</h2>
             <p className="text-sm text-zinc-500 leading-relaxed">
-              Bạn có bài kiểm tra hoặc cần ôn nhanh trước kỳ thi? Chọn chế độ này để củng cố từ vựng qua 3 dạng bài tập sinh động: trắc nghiệm, điền từ vào câu và nghe chép từ.
+              Cần tăng tốc ghi nhớ hoặc chuẩn bị cho kỳ thi? Luyện tập không giới hạn qua 6 chế độ sinh động: nhìn nghĩa gõ từ, trắc nghiệm, ghép thẻ, sắp xếp chữ cái, điền từ và nghe chép chính tả.
             </p>
           </div>
 

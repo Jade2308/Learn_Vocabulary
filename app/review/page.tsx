@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Volume2, RotateCcw, Check, Loader2, ArrowRight } from 'lucide-react';
+import { Volume2, RotateCcw, Check, Loader2, ArrowRight, ArrowLeftRight, Keyboard, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { UserVocabulary } from '@/types/db';
 import { playAudio } from '@/lib/audio';
@@ -14,9 +14,41 @@ export default function ReviewPage() {
   const [submitting, setSubmitting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
 
+  // Chế độ thẻ: Anh -> Việt (mặc định) hoặc Việt -> Anh
+  const [flipDirection, setFlipDirection] = useState<'en-vi' | 'vi-en'>('en-vi');
+  // Chế độ gõ từ tự kiểm tra
+  const [enableTyping, setEnableTyping] = useState<boolean>(false);
+  const [typedInput, setTypedInput] = useState('');
+  const [typingChecked, setTypingChecked] = useState(false);
+  const [isTypingCorrect, setIsTypingCorrect] = useState(false);
+
   useEffect(() => {
     fetchDueCards();
+    const savedDirection = localStorage.getItem('review_direction') as 'en-vi' | 'vi-en';
+    const savedTyping = localStorage.getItem('review_typing');
+    if (savedDirection) setFlipDirection(savedDirection);
+    if (savedTyping !== null) setEnableTyping(savedTyping === 'true');
   }, []);
+
+  const changeDirection = (dir: 'en-vi' | 'vi-en') => {
+    setFlipDirection(dir);
+    localStorage.setItem('review_direction', dir);
+    setIsFlipped(false);
+    resetTyping();
+  };
+
+  const toggleTyping = () => {
+    const nextVal = !enableTyping;
+    setEnableTyping(nextVal);
+    localStorage.setItem('review_typing', String(nextVal));
+    resetTyping();
+  };
+
+  const resetTyping = () => {
+    setTypedInput('');
+    setTypingChecked(false);
+    setIsTypingCorrect(false);
+  };
 
   const fetchDueCards = async () => {
     setLoading(true);
@@ -47,6 +79,7 @@ export default function ReviewPage() {
 
       if (currentIndex + 1 < cards.length) {
         setIsFlipped(false);
+        resetTyping();
         setCurrentIndex((prev) => prev + 1);
       } else {
         setIsCompleted(true);
@@ -61,6 +94,17 @@ export default function ReviewPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCheckTyping = (e: React.FormEvent) => {
+    e.preventDefault();
+    const currentCard = cards[currentIndex];
+    if (!currentCard || !typedInput.trim()) return;
+
+    const correct = currentCard.word?.headword?.trim().toLowerCase() === typedInput.trim().toLowerCase();
+    setIsTypingCorrect(correct);
+    setTypingChecked(true);
+    setIsFlipped(true);
   };
 
   if (loading) {
@@ -101,66 +145,201 @@ export default function ReviewPage() {
   const word = currentCard.word;
 
   return (
-    <div className="max-w-xl mx-auto space-y-6">
-      <div className="flex items-center justify-between text-xs text-zinc-500">
-        <span>Tiến độ ôn tập</span>
-        <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-          {currentIndex + 1} / {cards.length}
-        </span>
-      </div>
-      <div className="w-full bg-zinc-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden">
-        <div
-          className="bg-emerald-600 h-full transition-all duration-300"
-          style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}
-        />
+    <div className="max-w-xl mx-auto space-y-5">
+      {/* Thanh tùy chọn chế độ thẻ */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm text-xs">
+        <div className="flex items-center gap-1.5">
+          <span className="text-zinc-500 font-medium">Hướng thẻ:</span>
+          <div className="inline-flex p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800">
+            <button
+              type="button"
+              onClick={() => changeDirection('en-vi')}
+              className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                flipDirection === 'en-vi'
+                  ? 'bg-white dark:bg-zinc-900 text-emerald-600 dark:text-emerald-400 shadow-xs font-semibold'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
+              }`}
+            >
+              Anh → Việt
+            </button>
+            <button
+              type="button"
+              onClick={() => changeDirection('vi-en')}
+              className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                flipDirection === 'vi-en'
+                  ? 'bg-white dark:bg-zinc-900 text-emerald-600 dark:text-emerald-400 shadow-xs font-semibold'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
+              }`}
+            >
+              Việt → Anh
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={toggleTyping}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+            enableTyping
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 font-medium'
+              : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50'
+          }`}
+          title="Bật/Tắt ô gõ từ để kiểm tra trí nhớ trước khi lật thẻ"
+        >
+          <Keyboard className="w-3.5 h-3.5" />
+          <span>{enableTyping ? 'Đang bật gõ từ' : 'Tự gõ từ kiểm tra'}</span>
+        </button>
       </div>
 
+      {/* Thanh tiến độ */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between text-xs text-zinc-500">
+          <span>Tiến độ ôn tập</span>
+          <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+            {currentIndex + 1} / {cards.length}
+          </span>
+        </div>
+        <div className="w-full bg-zinc-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden">
+          <div
+            className="bg-emerald-600 h-full transition-all duration-300"
+            style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Thẻ Flashcard */}
       <div
-        onClick={() => !isFlipped && setIsFlipped(true)}
-        className={`min-h-[360px] p-8 rounded-3xl bg-white dark:bg-zinc-900 border-2 transition-all cursor-pointer shadow-md flex flex-col justify-between ${
+        onClick={() => !enableTyping && !isFlipped && setIsFlipped(true)}
+        className={`min-h-[380px] p-8 rounded-3xl bg-white dark:bg-zinc-900 border-2 transition-all shadow-md flex flex-col justify-between ${
+          !enableTyping ? 'cursor-pointer' : ''
+        } ${
           isFlipped
             ? 'border-zinc-200 dark:border-zinc-800'
             : 'border-emerald-200 dark:border-emerald-900/60 hover:border-emerald-400'
         }`}
       >
-        <div className="text-center space-y-4 my-auto">
-          <div className="flex items-center justify-center gap-3">
-            <h2 className="text-4xl font-extrabold capitalize text-zinc-900 dark:text-white">
-              {word?.headword}
-            </h2>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                playAudio(word?.headword || '', word?.audio_url);
-              }}
-              className="p-2.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 hover:bg-emerald-200 transition-colors"
-              title="Phát âm"
-            >
-              <Volume2 className="w-6 h-6" />
-            </button>
+        {/* ================== MẶT TRƯỚC ================== */}
+        {!isFlipped && (
+          <div className="text-center space-y-5 my-auto">
+            {flipDirection === 'en-vi' ? (
+              /* Mặt trước: Tiếng Anh */
+              <>
+                <div className="flex items-center justify-center gap-3">
+                  <h2 className="text-4xl font-extrabold capitalize text-zinc-900 dark:text-white">
+                    {word?.headword}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      playAudio(word?.headword || '', word?.audio_url);
+                    }}
+                    className="p-2.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 hover:bg-emerald-200 transition-colors cursor-pointer"
+                    title="Phát âm"
+                  >
+                    <Volume2 className="w-6 h-6" />
+                  </button>
+                </div>
+                {word?.ipa && (
+                  <p className="text-zinc-400 font-mono text-base">{word.ipa}</p>
+                )}
+              </>
+            ) : (
+              /* Mặt trước: Tiếng Việt */
+              <>
+                <span className="inline-flex px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wider">
+                  Nghĩa tiếng Việt
+                </span>
+                <h2 className="text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 max-w-md mx-auto leading-relaxed">
+                  {word?.meaning_vi}
+                </h2>
+                {word?.topics && word.topics.length > 0 && (
+                  <div className="flex items-center justify-center gap-1.5 flex-wrap pt-1">
+                    {word.topics.map((t) => (
+                      <span key={t} className="text-[11px] px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                        #{t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Ô gõ từ nếu bật chế độ tự kiểm tra */}
+            {enableTyping ? (
+              <form onSubmit={handleCheckTyping} className="pt-4 max-w-sm mx-auto space-y-2.5" onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="text"
+                  value={typedInput}
+                  onChange={(e) => setTypedInput(e.target.value)}
+                  placeholder={flipDirection === 'vi-en' ? 'Gõ từ tiếng Anh...' : 'Gõ nghĩa tiếng Việt...'}
+                  className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/80 text-center font-semibold text-base focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={!typedInput.trim()}
+                  className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Kiểm tra & Lật thẻ</span>
+                </button>
+              </form>
+            ) : (
+              <div className="pt-8 text-zinc-400 text-xs flex items-center justify-center gap-1.5 animate-pulse">
+                <RotateCcw className="w-4 h-4" /> Click để xem đáp án
+              </div>
+            )}
           </div>
+        )}
 
-          {word?.ipa && (
-            <p className="text-zinc-400 font-mono text-base">{word.ipa}</p>
-          )}
-
-          {!isFlipped && (
-            <div className="pt-8 text-zinc-400 text-xs flex items-center justify-center gap-1.5 animate-pulse">
-              <RotateCcw className="w-4 h-4" /> Click để xem đáp án
-            </div>
-          )}
-        </div>
-
+        {/* ================== MẶT SAU (LẬT THẺ) ================== */}
         {isFlipped && (
-          <div className="pt-6 mt-6 border-t border-zinc-100 dark:border-zinc-800 space-y-4 text-left animate-in fade-in duration-300">
-            <div>
-              <span className="text-xs font-semibold uppercase text-zinc-400">Nghĩa</span>
-              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                {word?.meaning_vi}
-              </p>
+          <div className="space-y-4 text-left animate-in fade-in duration-300 my-auto">
+            {/* Kết quả gõ nếu có */}
+            {typingChecked && (
+              <div className={`p-3 rounded-xl border flex items-center gap-2.5 text-xs font-medium ${
+                isTypingCorrect
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-400'
+                  : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-400'
+              }`}>
+                {isTypingCorrect ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" /> : <XCircle className="w-4 h-4 shrink-0 text-amber-600" />}
+                <div>
+                  {isTypingCorrect
+                    ? `Chính xác tuyệt đối! Bạn đã gõ đúng: "${typedInput}"`
+                    : `Bạn đã gõ: "${typedInput}". Đáp án chuẩn là: "${word?.headword}"`}
+                </div>
+              </div>
+            )}
+
+            {/* Thông tin chính của từ */}
+            <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <h3 className="text-2xl font-extrabold capitalize text-zinc-900 dark:text-white">
+                    {word?.headword}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      playAudio(word?.headword || '', word?.audio_url);
+                    }}
+                    className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 hover:bg-emerald-200 transition-colors cursor-pointer"
+                    title="Nghe phát âm"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                  </button>
+                </div>
+                {word?.ipa && <p className="text-zinc-500 font-mono text-xs mt-0.5">{word.ipa}</p>}
+              </div>
+              <div className="text-right">
+                <span className="text-[11px] text-zinc-400 uppercase font-semibold">Nghĩa tiếng Việt</span>
+                <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{word?.meaning_vi}</p>
+              </div>
             </div>
 
+            {/* Các dạng từ liên quan */}
             {word?.word_family && word.word_family.length > 0 && (
               <div>
                 <span className="text-xs font-semibold uppercase text-zinc-400">Các dạng từ liên quan</span>
@@ -184,6 +363,7 @@ export default function ReviewPage() {
               </div>
             )}
 
+            {/* Cấu trúc & Giới từ */}
             {word?.prepositions && word.prepositions.length > 0 && (
               <div>
                 <span className="text-xs font-semibold uppercase text-zinc-400">Cấu trúc</span>
@@ -215,6 +395,7 @@ export default function ReviewPage() {
               </div>
             )}
 
+            {/* Ví dụ song ngữ */}
             {word?.examples && word.examples.length > 0 && (
               <div>
                 <span className="text-xs font-semibold uppercase text-zinc-400">Ví dụ</span>
@@ -245,6 +426,7 @@ export default function ReviewPage() {
         )}
       </div>
 
+      {/* 4 Nút đánh giá phản hồi */}
       {isFlipped ? (
         <div className="grid grid-cols-4 gap-2.5">
           <button
@@ -283,7 +465,7 @@ export default function ReviewPage() {
       ) : (
         <button
           onClick={() => setIsFlipped(true)}
-          className="w-full py-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 font-medium text-sm transition-all"
+          className="w-full py-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 font-medium text-sm transition-all cursor-pointer"
         >
           Lật xem đáp án
         </button>
