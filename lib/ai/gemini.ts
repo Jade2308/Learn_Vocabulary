@@ -17,7 +17,21 @@ const ALLOWED_TOPICS = [
   'Ẩm thực',
 ];
 
-const CANDIDATE_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.7-flash'];
+/**
+ * Danh sách các mô hình Gemini theo thứ tự ưu tiên tối ưu nhất.
+ * Khi một mô hình hết lượt gọi (Rate Limit / Quota 429), quá tải (503), hoặc bận,
+ * hệ thống sẽ tự động chuyển ngay sang mô hình kế tiếp mà KHÔNG báo lỗi ra giao diện.
+ * Mỗi mô hình có hạn ngạch (RPM/RPD) riêng biệt tại Google AI Studio.
+ */
+const CANDIDATE_MODELS = [
+  'gemini-3.6-flash',          // Ưu tiên 1: Thông minh nhất, ngữ nghĩa sâu sắc, họ từ & ví dụ phong phú
+  'gemini-3.5-flash-lite',     // Ưu tiên 2: Tốc độ siêu tốc (~1s), nhẹ, quota riêng biệt
+  'gemini-flash-lite-latest',  // Ưu tiên 3: Phiên bản Flash-Lite mới nhất của Google
+  'gemini-3.1-flash-lite',     // Ưu tiên 4: Dòng Flash-Lite ổn định cao, dự phòng dồi dào
+  'gemini-3.5-flash',          // Ưu tiên 5: Phiên bản Flash tiêu chuẩn
+  'gemini-3.7-flash',          // Ưu tiên 6: Mô hình Flash cao cấp
+  'gemini-3.8-flash',          // Ưu tiên 7: Mô hình thế hệ kế tiếp
+];
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -111,16 +125,23 @@ Yêu cầu chi tiết:
       } catch (err: unknown) {
         lastError = err;
         const errString = err instanceof Error ? err.message : String(err);
+        const isQuotaExceeded = errString.includes('429') || errString.includes('RESOURCE_EXHAUSTED') || errString.includes('quota') || errString.includes('rate limit');
         const isTransient = errString.includes('503') || errString.includes('high demand') || errString.includes('UNAVAILABLE');
 
+        // Nếu hết quota / giới hạn gọi: chuyển ngay sang model kế tiếp không cần chờ
+        if (isQuotaExceeded) {
+          console.warn(`[AI Failover] Model ${model} đã hết hạn ngạch (429 Rate Limit/Quota). Tự động chuyển ngay sang model kế tiếp...`);
+          break;
+        }
+
+        // Nếu quá tải tạm thời ở lần đầu: chờ 500ms thử lại
         if (isTransient && attempt === 1) {
-          // Nghỉ 1 giây rồi thử lại model này
-          await sleep(1000);
+          await sleep(500);
           continue;
         }
 
-        // Chuyển sang model dự phòng kế tiếp
-        console.warn(`Model ${model} failed (attempt ${attempt}):`, errString);
+        // Lỗi khác hoặc đã thử lại không thành: tự động chuyển sang model dự phòng kế tiếp
+        console.warn(`[AI Failover] Model ${model} tạm dừng (${errString.slice(0, 100)}...). Tự động chuyển sang model dự phòng kế tiếp...`);
         break;
       }
     }
