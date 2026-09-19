@@ -112,6 +112,14 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
   - Làm mềm ngữ liệu trang: thay "Học tập ngắt quãng (SM-2)" bằng "Phương pháp ghi nhớ thông minh", "Cram Mode" bằng "Luyện tập cấp tốc", "Đã thêm vào SRS" bằng "Đã lưu vào sổ từ vựng".
   - Thân thiện hóa 4 nút đánh giá từ vựng flashcard: `Chưa nhớ` (Ôn lại sớm), `Hơi khó` (Sắp nhớ), `Đã nhớ` (Ôn định kỳ), `Rất thuộc` (Giãn cách xa).
 
+### 8. Xử lý lỗi 503 UNAVAILABLE (Spikes in demand) của Gemini API
+- **Hiện tượng:** Khi thêm từ mới (như `resume`), Google API thỉnh thoảng trả về mã `503: "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."`
+- **Nguyên nhân:** Cụm máy chủ của Google AI Studio gặp đợt quá tải đột biến tại thời điểm gửi request.
+- **Xử lý:**
+  - Bổ sung danh sách mô hình dự phòng: `['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.7-flash']` trong [`lib/ai/gemini.ts`](file:///d:/DATA/Learn_Vocabulary/lib/ai/gemini.ts).
+  - Tự động chờ 1 giây và thử lại nếu gặp lỗi quá tải tạm thời trước khi chuyển sang model kế tiếp.
+  - Chuẩn hóa thông báo lỗi thân thiện tại [`app/api/words/route.ts`](file:///d:/DATA/Learn_Vocabulary/app/api/words/route.ts) để không hiển thị chuỗi JSON thô cho người dùng.
+
 ---
 
 ## 5. Các bước tiếp theo (Next Steps / Roadmap)
