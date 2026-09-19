@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 
-const DEFAULT_DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
+const DEMO_EMAIL = 'demo@vocabsrs.app';
+let cachedUserId: string | null = null;
 
 export async function getAuthUserId(req: NextRequest): Promise<string> {
   const authHeader = req.headers.get('authorization');
@@ -22,6 +23,32 @@ export async function getAuthUserId(req: NextRequest): Promise<string> {
     return customUserId;
   }
 
-  return DEFAULT_DEMO_USER_ID;
-}
+  if (cachedUserId) {
+    return cachedUserId;
+  }
 
+  // Tự động tìm hoặc tạo 1 demo user hợp lệ trong auth.users
+  try {
+    const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
+    const existing = usersData?.users?.find((u) => u.email === DEMO_EMAIL);
+    if (existing) {
+      cachedUserId = existing.id;
+      return existing.id;
+    }
+
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email: DEMO_EMAIL,
+      email_confirm: true,
+      user_metadata: { name: 'Demo User' },
+    });
+
+    if (!createError && newUser?.user) {
+      cachedUserId = newUser.user.id;
+      return newUser.user.id;
+    }
+  } catch (e) {
+    console.error('Error ensuring demo user in Supabase auth:', e);
+  }
+
+  return '00000000-0000-0000-0000-000000000001';
+}
