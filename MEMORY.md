@@ -143,10 +143,18 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
   - **Thẻ 3 — Chủ đề phân loại:** Mở Modal *Chủ đề từ vựng* liệt kê tất cả chủ đề kèm số lượng từ, mỗi chủ đề có nút *"Luyện tập"* dẫn thẳng sang `/cram?topic=...`. Trang Cram được nâng cấp để tự động bắt tham số `?topic=...` từ URL và kích hoạt chủ đề ngay lập tức.
   - **Tiện ích:** Hỗ trợ đóng Modal linh hoạt bằng phím `Escape`, nút `X`, nút `Đóng` hoặc click ra ngoài vùng nền mờ (Backdrop).
 
+### 11. Bổ sung Loại từ (Part of Speech) và Phiên âm chuẩn (IPA) vào Prompt AI
+- **Hiện tượng:** Prompt ban đầu chỉ yêu cầu Gemini trả về nghĩa tiếng Việt, họ từ, giới từ, ví dụ và chủ đề. Hệ thống bị thiếu loại từ chính của từ vựng (danh từ, động từ, tính từ...) và phụ thuộc hoàn toàn vào Free Dictionary API để lấy IPA (vốn hay bị thiếu hoặc không tìm thấy).
+- **Xử lý:**
+  - **Cập nhật Prompt trong [`lib/ai/gemini.ts`](file:///d:/DATA/Learn_Vocabulary/lib/ai/gemini.ts):** Bổ sung yêu cầu trích xuất loại từ chính (`part_of_speech`: noun, verb, adjective, adverb, preposition, phrasal verb, idiom...) và phiên âm quốc tế chuẩn xác (`ipa`).
+  - **Đồng bộ Schema & Interface:** Bổ sung `part_of_speech` và `ipa` vào JSON Schema của Gemini SDK và [`types/db.ts`](file:///d:/DATA/Learn_Vocabulary/types/db.ts).
+  - **Tối ưu hóa API ([`app/api/words/route.ts`](file:///d:/DATA/Learn_Vocabulary/app/api/words/route.ts)):** Ghép loại từ trực tiếp vào nghĩa tiếng Việt dạng `(loại từ) nghĩa tiếng Việt` để hiển thị đồng bộ trên toàn bộ giao diện; sử dụng phiên âm từ Gemini làm phương án dự phòng chuẩn xác 100% nếu Free Dictionary API thiếu IPA.
+
 ---
 
 ## 5. Các bước tiếp theo (Next Steps / Roadmap)
 - [ ] Tích hợp giao diện đăng nhập / đăng ký chính thức qua Google OAuth & Email (Supabase Auth UI).
 - [ ] Thiết lập Cron Job dọn dẹp `review_logs > 60 ngày` trên Supabase (như quy định trong `PROJECT.md`).
 - [ ] Triển khai dự án lên Vercel và cấu hình biến môi trường production.
+
 

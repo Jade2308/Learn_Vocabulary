@@ -41,19 +41,23 @@ export async function enrichWordWithGemini(headword: string): Promise<GeminiEnri
   }
 
   const prompt = `Bạn là một chuyên gia ngôn ngữ học và biên soạn từ điển tiếng Anh - tiếng Việt chuyên nghiệp.
-Hãy làm giàu dữ liệu cho từ tiếng Anh sau: "${headword}".
+Hãy làm giàu dữ liệu toàn diện cho từ tiếng Anh sau: "${headword}".
 
 Yêu cầu chi tiết:
-1. "meaning_vi": Nghĩa tiếng Việt chuẩn, súc tích, phổ biến nhất của từ này.
-2. "word_family": Danh sách họ từ liên quan (verb, noun, adjective, adverb) kèm nghĩa tiếng Việt. Tối đa 4 từ phổ biến.
-3. "prepositions": Các cụm giới từ hoặc cấu trúc thông dụng đi kèm với từ này (pattern ví dụ: "depend on + N/V-ing"), giải thích nghĩa tiếng Việt và 1 câu ví dụ minh họa bằng tiếng Anh.
-4. "examples": 2 đến 3 câu ví dụ song ngữ tự nhiên, thông dụng (en: tiếng Anh, vi: bản dịch tiếng Việt).
-5. "topics": Chọn từ 1 đến 3 chủ đề phù hợp nhất từ danh sách sau: [${ALLOWED_TOPICS.map((t) => `"${t}"`).join(', ')}]. Không tự ý tạo chủ đề ngoài danh sách.`;
+1. "part_of_speech": Loại từ chính của từ này (ví dụ: "noun", "verb", "adjective", "adverb", "phrasal verb", "idiom", "preposition").
+2. "ipa": Phiên âm quốc tế IPA chuẩn xác của từ (ví dụ: "/rɪˈzjuːm/", "/ˈrez.ɪ.li.ənt/").
+3. "meaning_vi": Nghĩa tiếng Việt chuẩn, súc tích, phổ biến nhất của từ này (ví dụ: "tiếp tục", "kiên cường").
+4. "word_family": Danh sách họ từ liên quan (verb, noun, adjective, adverb) kèm nghĩa tiếng Việt. Tối đa 4 từ phổ biến.
+5. "prepositions": Các cụm giới từ hoặc cấu trúc thông dụng đi kèm với từ này (pattern ví dụ: "depend on + N/V-ing"), giải thích nghĩa tiếng Việt và 1 câu ví dụ minh họa bằng tiếng Anh.
+6. "examples": 2 đến 3 câu ví dụ song ngữ tự nhiên, thông dụng (en: tiếng Anh, vi: bản dịch tiếng Việt).
+7. "topics": Chọn từ 1 đến 3 chủ đề phù hợp nhất từ danh sách sau: [${ALLOWED_TOPICS.map((t) => `"${t}"`).join(', ')}]. Không tự ý tạo chủ đề ngoài danh sách.`;
 
   const schema = {
     type: Type.OBJECT,
     properties: {
       headword: { type: Type.STRING },
+      part_of_speech: { type: Type.STRING },
+      ipa: { type: Type.STRING },
       meaning_vi: { type: Type.STRING },
       word_family: {
         type: Type.ARRAY,
@@ -98,7 +102,7 @@ Yêu cầu chi tiết:
         items: { type: Type.STRING },
       },
     },
-    required: ['headword', 'meaning_vi', 'word_family', 'prepositions', 'examples', 'topics'],
+    required: ['headword', 'part_of_speech', 'ipa', 'meaning_vi', 'word_family', 'prepositions', 'examples', 'topics'],
   };
 
   let lastError: unknown = null;

@@ -17,6 +17,8 @@ export interface ExampleItem {
 
 export interface GeminiEnrichmentResponse {
   headword: string;
+  part_of_speech?: string;
+  ipa?: string;
   meaning_vi: string;
   word_family: WordFamilyItem[];
   prepositions: PrepositionItem[];
@@ -28,6 +30,7 @@ export interface Word {
   id: string;
   headword: string;
   ipa: string | null;
+  part_of_speech?: string | null;
   audio_url: string | null;
   meaning_vi: string;
   word_family: WordFamilyItem[];

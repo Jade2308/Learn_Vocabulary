@@ -50,13 +50,18 @@ export async function POST(req: NextRequest) {
           enrichWordWithGemini(headword),
         ]);
 
+        const formattedMeaning =
+          geminiResult.part_of_speech && !geminiResult.meaning_vi.startsWith('(')
+            ? `(${geminiResult.part_of_speech}) ${geminiResult.meaning_vi}`
+            : geminiResult.meaning_vi;
+
         const { data: insertedWord, error: insertWordError } = await supabaseAdmin
           .from('words')
           .insert({
             headword,
-            ipa: dictResult.ipa,
+            ipa: dictResult.ipa || geminiResult.ipa,
             audio_url: dictResult.audio_url,
-            meaning_vi: geminiResult.meaning_vi,
+            meaning_vi: formattedMeaning,
             word_family: geminiResult.word_family || [],
             prepositions: geminiResult.prepositions || [],
             examples: geminiResult.examples || [],
