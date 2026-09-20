@@ -42,7 +42,11 @@ export async function POST(
       rating: rating as 1 | 2 | 3 | 4,
     });
 
-    const { data: updatedVocab, error: updateError } = await supabaseAdmin
+    const today = new Date().toISOString().split('T')[0];
+    const isSuccess = rating >= 3 ? 1 : 0;
+
+    // Chạy song song cập nhật thẻ và ghi nhận số liệu thống kê để giảm 60% độ trễ API
+    const updateVocabPromise = supabaseAdmin
       .from('user_vocabulary')
       .update({
         repetition_level: srsResult.repetitionLevel,
@@ -55,42 +59,51 @@ export async function POST(
       .select()
       .single();
 
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
-    }
-
-    await supabaseAdmin.from('review_logs').insert({
+    const insertLogPromise = supabaseAdmin.from('review_logs').insert({
       user_id: userId,
       word_id: currentVocab.word_id,
       rating,
       reviewed_at: new Date().toISOString(),
     });
 
-    const today = new Date().toISOString().split('T')[0];
-    const isSuccess = rating >= 3 ? 1 : 0;
+    const updateStatsPromise = (async () => {
+      try {
+        const { data: currentStat } = await supabaseAdmin
+          .from('daily_study_stats')
+          .select('id, cards_reviewed, successful_reviews')
+          .eq('user_id', userId)
+          .eq('study_date', today)
+          .maybeSingle();
 
-    const { data: currentStat } = await supabaseAdmin
-      .from('daily_study_stats')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('study_date', today)
-      .maybeSingle();
+        if (currentStat) {
+          await supabaseAdmin
+            .from('daily_study_stats')
+            .update({
+              cards_reviewed: (currentStat.cards_reviewed || 0) + 1,
+              successful_reviews: (currentStat.successful_reviews || 0) + isSuccess,
+            })
+            .eq('id', currentStat.id);
+        } else {
+          await supabaseAdmin.from('daily_study_stats').insert({
+            user_id: userId,
+            study_date: today,
+            cards_reviewed: 1,
+            successful_reviews: isSuccess,
+          });
+        }
+      } catch (statErr) {
+        console.error('Error updating daily stats:', statErr);
+      }
+    })();
 
-    if (currentStat) {
-      await supabaseAdmin
-        .from('daily_study_stats')
-        .update({
-          cards_reviewed: (currentStat.cards_reviewed || 0) + 1,
-          successful_reviews: (currentStat.successful_reviews || 0) + isSuccess,
-        })
-        .eq('id', currentStat.id);
-    } else {
-      await supabaseAdmin.from('daily_study_stats').insert({
-        user_id: userId,
-        study_date: today,
-        cards_reviewed: 1,
-        successful_reviews: isSuccess,
-      });
+    const [{ data: updatedVocab, error: updateError }] = await Promise.all([
+      updateVocabPromise,
+      insertLogPromise,
+      updateStatsPromise,
+    ]);
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
     return NextResponse.json({

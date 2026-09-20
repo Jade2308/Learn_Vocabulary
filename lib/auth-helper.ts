@@ -2,7 +2,9 @@ import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 
 const DEMO_EMAIL = 'demo@vocabsrs.app';
-let cachedUserId: string | null = null;
+const FALLBACK_DEMO_USER_ID = 'cd20743a-d3d0-437d-ad71-4bd6159a799a';
+
+const globalForAuth = globalThis as unknown as { cachedUserId?: string };
 
 export async function getAuthUserId(req: NextRequest): Promise<string> {
   const authHeader = req.headers.get('authorization');
@@ -23,16 +25,22 @@ export async function getAuthUserId(req: NextRequest): Promise<string> {
     return customUserId;
   }
 
-  if (cachedUserId) {
-    return cachedUserId;
+  // Tối ưu hóa tốc độ: ưu tiên lấy trực tiếp ID demo đã cấu hình (0ms latency)
+  const configuredUserId = process.env.DEFAULT_DEMO_USER_ID || FALLBACK_DEMO_USER_ID;
+  if (configuredUserId) {
+    return configuredUserId;
   }
 
-  // Tự động tìm hoặc tạo 1 demo user hợp lệ trong auth.users
+  if (globalForAuth.cachedUserId) {
+    return globalForAuth.cachedUserId;
+  }
+
+  // Tự động tìm hoặc tạo 1 demo user hợp lệ trong auth.users nếu chưa có
   try {
     const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
     const existing = usersData?.users?.find((u) => u.email === DEMO_EMAIL);
     if (existing) {
-      cachedUserId = existing.id;
+      globalForAuth.cachedUserId = existing.id;
       return existing.id;
     }
 
@@ -43,7 +51,7 @@ export async function getAuthUserId(req: NextRequest): Promise<string> {
     });
 
     if (!createError && newUser?.user) {
-      cachedUserId = newUser.user.id;
+      globalForAuth.cachedUserId = newUser.user.id;
       return newUser.user.id;
     }
   } catch (e) {

@@ -40,6 +40,29 @@ export default function DashboardPage() {
   const [detailSourceList, setDetailSourceList] = useState<UserVocabulary[]>([]);
 
   useEffect(() => {
+    // 1. Tải nhanh từ LocalStorage cache để hiển thị tức thì (0ms) ngay khi mở/tải lại trang
+    try {
+      const cachedDue = localStorage.getItem('cached_due_cards');
+      const cachedWords = localStorage.getItem('cached_all_words');
+      const cachedTopics = localStorage.getItem('cached_topics');
+
+      if (cachedDue) {
+        const parsed = JSON.parse(cachedDue);
+        if (Array.isArray(parsed)) setDueCards(parsed);
+      }
+      if (cachedWords) {
+        const parsed = JSON.parse(cachedWords);
+        if (Array.isArray(parsed)) setAllWords(parsed);
+      }
+      if (cachedTopics) {
+        const parsed = JSON.parse(cachedTopics);
+        if (Array.isArray(parsed)) setTopics(parsed);
+      }
+    } catch (e) {
+      console.warn('Error reading dashboard cache:', e);
+    }
+
+    // 2. Chạy ngầm để đồng bộ dữ liệu mới nhất từ server
     async function loadData() {
       try {
         const [dueRes, topicsRes, allRes] = await Promise.all([
@@ -52,9 +75,18 @@ export default function DashboardPage() {
         const topicsData = await topicsRes.json();
         const allData = await allRes.json();
 
-        if (Array.isArray(dueData)) setDueCards(dueData);
-        if (Array.isArray(topicsData)) setTopics(topicsData);
-        if (Array.isArray(allData)) setAllWords(allData);
+        if (Array.isArray(dueData)) {
+          setDueCards(dueData);
+          localStorage.setItem('cached_due_cards', JSON.stringify(dueData));
+        }
+        if (Array.isArray(topicsData)) {
+          setTopics(topicsData);
+          localStorage.setItem('cached_topics', JSON.stringify(topicsData));
+        }
+        if (Array.isArray(allData)) {
+          setAllWords(allData);
+          localStorage.setItem('cached_all_words', JSON.stringify(allData));
+        }
       } catch (err) {
         console.error('Error loading dashboard data:', err);
       } finally {

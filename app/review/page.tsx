@@ -12,7 +12,6 @@ export default function ReviewPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
 
   // Chế độ thẻ: Anh -> Việt (mặc định) hoặc Việt -> Anh
@@ -24,6 +23,20 @@ export default function ReviewPage() {
   const [isTypingCorrect, setIsTypingCorrect] = useState(false);
 
   useEffect(() => {
+    // 1. Tải nhanh từ LocalStorage cache để hiển thị tức thì (0ms)
+    try {
+      const cached = localStorage.getItem('cached_due_cards');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCards(parsed);
+          setLoading(false);
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading cached due cards:', e);
+    }
+
     fetchDueCards();
     const savedDirection = localStorage.getItem('review_direction') as 'en-vi' | 'vi-en';
     const savedTyping = localStorage.getItem('review_typing');
@@ -52,12 +65,12 @@ export default function ReviewPage() {
   };
 
   const fetchDueCards = async () => {
-    setLoading(true);
     try {
       const res = await fetch('/api/reviews/due');
       const data = await res.json();
       if (Array.isArray(data)) {
         setCards(data);
+        localStorage.setItem('cached_due_cards', JSON.stringify(data));
       }
     } catch (err) {
       console.error('Error fetching due reviews:', err);
@@ -66,35 +79,42 @@ export default function ReviewPage() {
     }
   };
 
-  const handleRating = async (rating: 1 | 2 | 3 | 4) => {
+  const handleRating = (rating: 1 | 2 | 3 | 4) => {
     const currentCard = cards[currentIndex];
-    if (!currentCard || submitting) return;
+    if (!currentCard) return;
 
-    setSubmitting(true);
-    try {
-      await fetch(`/api/reviews/${currentCard.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating }),
+    const cardIdToReview = currentCard.id;
+
+    // OPTIMISTIC UI: Chuyển sang từ tiếp theo NGAY LẬP TỨC trong 0ms
+    if (currentIndex + 1 < cards.length) {
+      setIsFlipped(false);
+      resetTyping();
+      setCurrentIndex((prev) => prev + 1);
+    } else {
+      setIsCompleted(true);
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
       });
-
-      if (currentIndex + 1 < cards.length) {
-        setIsFlipped(false);
-        resetTyping();
-        setCurrentIndex((prev) => prev + 1);
-      } else {
-        setIsCompleted(true);
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
-      }
-    } catch (err) {
-      console.error('Error submitting review:', err);
-    } finally {
-      setSubmitting(false);
     }
+
+    // Cập nhật bộ nhớ cache ngầm để giữ đồng bộ dữ liệu
+    try {
+      const remainingCards = cards.filter((c) => c.id !== cardIdToReview);
+      localStorage.setItem('cached_due_cards', JSON.stringify(remainingCards));
+    } catch (e) {
+      // ignore
+    }
+
+    // Gửi request ngầm ở background mà KHÔNG CHẶN giao diện người dùng
+    fetch(`/api/reviews/${cardIdToReview}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rating }),
+    }).catch((err) => {
+      console.error('Background review submission failed:', err);
+    });
   };
 
   const handleCheckTyping = (e: React.FormEvent) => {
@@ -553,7 +573,6 @@ export default function ReviewPage() {
         <div className="grid grid-cols-4 gap-2.5">
           <button
             onClick={() => handleRating(1)}
-            disabled={submitting}
             className="py-3 px-2 rounded-2xl bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 font-semibold text-xs sm:text-sm flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
             <span>Chưa nhớ</span>
@@ -561,7 +580,6 @@ export default function ReviewPage() {
           </button>
           <button
             onClick={() => handleRating(2)}
-            disabled={submitting}
             className="py-3 px-2 rounded-2xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900 font-semibold text-xs sm:text-sm flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
             <span>Hơi khó</span>
@@ -569,7 +587,6 @@ export default function ReviewPage() {
           </button>
           <button
             onClick={() => handleRating(3)}
-            disabled={submitting}
             className="py-3 px-2 rounded-2xl bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900 font-semibold text-xs sm:text-sm flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
             <span>Đã nhớ</span>
@@ -577,7 +594,6 @@ export default function ReviewPage() {
           </button>
           <button
             onClick={() => handleRating(4)}
-            disabled={submitting}
             className="py-3 px-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900 font-semibold text-xs sm:text-sm flex flex-col items-center gap-1 transition-all cursor-pointer"
           >
             <span>Rất thuộc</span>
