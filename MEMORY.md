@@ -159,6 +159,21 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
   - **Tối ưu hóa Backend ([`app/api/words/route.ts`](file:///d:/DATA/Learn_Vocabulary/app/api/words/route.ts)):** Ghép cấp độ CEFR và loại từ vào nghĩa tiếng Việt; gộp Collocations vào cấu trúc để luôn lưu trữ an toàn; cơ chế fallback tự động thích ứng với database.
   - **Giao diện người dùng ([`app/words/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/words/page.tsx) & [`app/review/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/review/page.tsx)):** Hiển thị Huy hiệu cấp độ CEFR (A1-C2), Hộp phân tích gốc từ & cấu tạo từ (Etymology) nổi bật với icon nhánh từ, Danh mục từ đồng nghĩa (xanh) & trái nghĩa (hồng).
 
+### 13. Tái cấu trúc UX: Chuyển Cấp độ CEFR & Loại từ thành Badge ở Header, Tách biệt rõ ràng Giới từ & Cụm từ thông dụng (Collocations)
+- **Nhu cầu:**
+  1. Vị trí Cấp độ CEFR trước đây bị chèn trực tiếp vào đầu chuỗi nghĩa tiếng Việt dạng `(noun • A2) ...` khiến văn bản nghĩa bị rối và chiếm diện tích không hợp lý. Cần đưa Cấp độ CEFR và Loại từ lên đầu trang thành các Badge riêng biệt, đẹp mắt cạnh từ chính.
+  2. Phần "Giới từ & Cấu trúc" trước đây bị gộp chung các cụm từ (collocations như `job interview`, `conduct an interview`) với giới từ (`interview with/for`), khiến người dùng nhìn vào không phân biệt được đâu là giới từ chuẩn đi kèm, đâu là cụm từ thông dụng người bản xứ hay dùng.
+- **Xử lý:**
+  - **Tạo Helper chuẩn hóa ([`lib/vocab-helper.ts`](file:///d:/DATA/Learn_Vocabulary/lib/vocab-helper.ts)):**
+    - `parseMeaningAndMeta(rawMeaning, explicitPos, explicitCefr)`: Làm sạch nghĩa tiếng Việt (loại bỏ các tiền tố ngoặc đơn nếu có), trích xuất chuẩn `pureMeaning`, `pos` và `cefr`.
+    - `categorizePrepsAndCollocations(items, explicitCollocations)`: Phân loại rạch ròi giữa Giới từ đi kèm (Prepositions) và Cụm từ thông dụng (Collocations) dựa trên nhãn `type` hoặc phân tích mẫu chuỗi (tương thích ngược hoàn toàn với dữ liệu cũ).
+    - `getCefrBadgeStyle(level)`: Cung cấp màu sắc phân cấp trực quan (A1/A2 xanh lá, B1/B2 xanh dương, C1/C2 tím huỳnh quang).
+  - **Dọn dẹp CSDL & API ([`app/api/words/route.ts`](file:///d:/DATA/Learn_Vocabulary/app/api/words/route.ts)):** Dọn dẹp các bản ghi cũ trong database Supabase, đảm bảo `meaning_vi` luôn lưu nghĩa thuần túy; gắn nhãn `type: 'preposition' | 'collocation'` rõ ràng vào dữ liệu JSONB.
+  - **Tái thiết kế Giao diện Thêm từ ([`app/words/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/words/page.tsx)) & Flashcard Ôn tập ([`app/review/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/review/page.tsx)):**
+    - Cấp độ CEFR và Loại từ hiển thị dạng Badge tròn gọn gàng ngay cạnh từ vựng chính ở Header.
+    - Nghĩa tiếng Việt hiển thị nổi bật, rõ ràng, không còn chứa thẻ ngoặc kỹ thuật.
+    - Tách thành 2 khu vực trực quan riêng biệt: **"Giới từ đi kèm (Prepositions)"** (có nhãn xanh ngọc `Giới từ` và giải thích giới từ chuẩn) và **"Cụm từ thông dụng (Collocations)"** (có nhãn xanh dương `Cụm từ` và giải thích cách phối từ tự nhiên).
+
 ---
 
 ## 5. Các bước tiếp theo (Next Steps / Roadmap)

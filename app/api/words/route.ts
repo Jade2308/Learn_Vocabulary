@@ -50,24 +50,25 @@ export async function POST(req: NextRequest) {
           enrichWordWithGemini(headword),
         ]);
 
-        const formattedMeaning =
-          geminiResult.part_of_speech && !geminiResult.meaning_vi.startsWith('(')
-            ? `(${geminiResult.part_of_speech}${geminiResult.cefr_level ? ` • ${geminiResult.cefr_level}` : ''}) ${geminiResult.meaning_vi}`
-            : geminiResult.meaning_vi;
+        const pureMeaning = geminiResult.meaning_vi.trim();
 
-        // Tích hợp Collocations vào Prepositions để luôn được lưu và hiển thị ngay cả khi DB chưa thêm cột riêng
-        const existingPreps = geminiResult.prepositions || [];
-        const extraCollocations = (geminiResult.collocations || []).map((c) => ({
+        // Gắn nhãn type rõ ràng để giao diện phân biệt rạch ròi giữa Giới từ và Cụm từ thông dụng
+        const explicitPreps = (geminiResult.prepositions || []).map((p) => ({
+          ...p,
+          type: 'preposition',
+        }));
+        const explicitCollocations = (geminiResult.collocations || []).map((c) => ({
           pattern: c.phrase,
           explanation: c.meaning_vi,
+          type: 'collocation',
         }));
-        const combinedPrepositions = [...existingPreps, ...extraCollocations];
+        const combinedPrepositions = [...explicitPreps, ...explicitCollocations];
 
         const standardPayload = {
           headword,
           ipa: dictResult.ipa || geminiResult.ipa,
           audio_url: dictResult.audio_url,
-          meaning_vi: formattedMeaning,
+          meaning_vi: pureMeaning,
           word_family: geminiResult.word_family || [],
           prepositions: combinedPrepositions,
           examples: geminiResult.examples || [],

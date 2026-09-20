@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Volume2, Loader2, Sparkles, CheckCircle, Tag, GitBranch } from 'lucide-react';
 import { Word } from '@/types/db';
 import { playAudio } from '@/lib/audio';
+import { parseMeaningAndMeta, categorizePrepsAndCollocations, getCefrBadgeStyle } from '@/lib/vocab-helper';
 
 export default function WordsPage() {
   const [inputWord, setInputWord] = useState('');
@@ -40,6 +41,14 @@ export default function WordsPage() {
       setLoading(false);
     }
   };
+
+  const { pureMeaning, pos, cefr } = addedWord
+    ? parseMeaningAndMeta(addedWord.meaning_vi, addedWord.part_of_speech, addedWord.cefr_level)
+    : { pureMeaning: '', pos: null, cefr: null };
+
+  const { prepositions, collocations } = addedWord
+    ? categorizePrepsAndCollocations(addedWord.prepositions, addedWord.collocations)
+    : { prepositions: [], collocations: [] };
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
@@ -89,17 +98,12 @@ export default function WordsPage() {
 
       {addedWord && (
         <div className="p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-emerald-100 dark:border-emerald-950/60 shadow-lg space-y-6">
-          <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-4">
-            <div>
-              <div className="flex items-center gap-3">
+          <div className="flex items-start justify-between border-b border-zinc-100 dark:border-zinc-800 pb-4 gap-4">
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <h2 className="text-3xl font-extrabold capitalize text-zinc-900 dark:text-white">
                   {addedWord.headword}
                 </h2>
-                {addedWord.cefr_level && (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                    {addedWord.cefr_level}
-                  </span>
-                )}
                 <button
                   type="button"
                   onClick={() => playAudio(addedWord.headword, addedWord.audio_url)}
@@ -108,12 +112,30 @@ export default function WordsPage() {
                 >
                   <Volume2 className="w-5 h-5" />
                 </button>
+
+                {/* Badge Loại từ */}
+                {pos && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+                    {pos}
+                  </span>
+                )}
+
+                {/* Badge Cấp độ CEFR */}
+                {cefr && (
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border ${getCefrBadgeStyle(
+                      cefr
+                    )}`}
+                  >
+                    Cấp độ {cefr}
+                  </span>
+                )}
               </div>
               {addedWord.ipa && (
-                <p className="text-zinc-500 font-mono text-sm mt-1">{addedWord.ipa}</p>
+                <p className="text-zinc-500 font-mono text-sm">{addedWord.ipa}</p>
               )}
             </div>
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shrink-0">
               <CheckCircle className="w-3.5 h-3.5" />
               Đã lưu vào sổ từ vựng
             </span>
@@ -121,8 +143,8 @@ export default function WordsPage() {
 
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">Nghĩa tiếng Việt</h3>
-            <p className="text-lg font-medium text-emerald-700 dark:text-emerald-400">
-              {addedWord.meaning_vi}
+            <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
+              {pureMeaning}
             </p>
           </div>
 
@@ -136,6 +158,109 @@ export default function WordsPage() {
               <p className="text-sm text-zinc-800 dark:text-zinc-200 leading-relaxed">
                 {addedWord.word_etymology}
               </p>
+            </div>
+          )}
+
+          {/* Các dạng từ liên quan (Word Family) */}
+          {addedWord.word_family && addedWord.word_family.length > 0 && (
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">Các dạng từ liên quan (Word Family)</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {addedWord.word_family.map((wf, idx) => (
+                  <div key={idx} className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-sm flex items-center justify-between gap-2">
+                    <div className="flex-1">
+                      <span className="font-semibold text-zinc-900 dark:text-zinc-100">{wf.word}</span>{' '}
+                      <span className="text-xs text-zinc-500 italic">({wf.part_of_speech})</span>: {wf.meaning_vi}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => playAudio(wf.word)}
+                      title={`Phát âm từ: ${wf.word}`}
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors shrink-0 cursor-pointer"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* MỤC 1: Giới từ đi kèm (Prepositions) */}
+          {prepositions.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                  Giới từ đi kèm (Prepositions)
+                </h3>
+                <span className="text-[11px] text-zinc-400 italic">
+                  Các giới từ chuẩn đi kèm với từ
+                </span>
+              </div>
+              <div className="space-y-2">
+                {prepositions.map((prep, idx) => (
+                  <div key={idx} className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-sm space-y-1">
+                    <div className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                      <span>{prep.pattern}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-medium">Giới từ</span>
+                    </div>
+                    <div className="text-zinc-600 dark:text-zinc-400 text-xs">{prep.explanation}</div>
+                    {prep.example && (
+                      <div className="text-zinc-500 italic text-xs pt-1.5 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2">
+                        <span>&ldquo;{prep.example}&rdquo;</span>
+                        <button
+                          type="button"
+                          onClick={() => playAudio(prep.example!)}
+                          title="Nghe câu ví dụ"
+                          className="p-1 rounded text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors shrink-0 cursor-pointer"
+                        >
+                          <Volume2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* MỤC 2: Cụm từ thông dụng (Collocations) */}
+          {collocations.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                  Cụm từ thông dụng (Collocations)
+                </h3>
+                <span className="text-[11px] text-zinc-400 italic">
+                  Cách kết hợp từ tự nhiên người bản xứ hay dùng
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {collocations.map((col, idx) => (
+                  <div key={idx} className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-sm flex items-start justify-between gap-2">
+                    <div className="space-y-0.5 flex-1">
+                      <div className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                        <span>{col.pattern}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 font-medium">Cụm từ</span>
+                      </div>
+                      <div className="text-zinc-500 dark:text-zinc-400 text-xs">{col.explanation}</div>
+                      {col.example && (
+                        <div className="text-zinc-400 italic text-[11px] pt-1">
+                          &ldquo;{col.example}&rdquo;
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => playAudio(col.pattern)}
+                      title="Nghe phát âm cụm từ"
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors shrink-0 cursor-pointer mt-0.5"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -178,57 +303,6 @@ export default function WordsPage() {
                   </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {addedWord.word_family && addedWord.word_family.length > 0 && (
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">Các dạng từ liên quan (Word Family)</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {addedWord.word_family.map((wf, idx) => (
-                  <div key={idx} className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-sm flex items-center justify-between gap-2">
-                    <div className="flex-1">
-                      <span className="font-semibold text-zinc-900 dark:text-zinc-100">{wf.word}</span>{' '}
-                      <span className="text-xs text-zinc-500 italic">({wf.part_of_speech})</span>: {wf.meaning_vi}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => playAudio(wf.word)}
-                      title={`Phát âm từ: ${wf.word}`}
-                      className="p-1.5 rounded-lg text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors shrink-0 cursor-pointer"
-                    >
-                      <Volume2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {addedWord.prepositions && addedWord.prepositions.length > 0 && (
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">Giới từ & Cấu trúc</h3>
-              <div className="space-y-2">
-                {addedWord.prepositions.map((prep, idx) => (
-                  <div key={idx} className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-sm space-y-1">
-                    <div className="font-semibold text-emerald-600 dark:text-emerald-400">{prep.pattern}</div>
-                    <div className="text-zinc-600 dark:text-zinc-400 text-xs">{prep.explanation}</div>
-                    {prep.example && (
-                      <div className="text-zinc-500 italic text-xs pt-1.5 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2">
-                        <span>&ldquo;{prep.example}&rdquo;</span>
-                        <button
-                          type="button"
-                          onClick={() => playAudio(prep.example!)}
-                          title="Nghe câu ví dụ"
-                          className="p-1 rounded text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors shrink-0 cursor-pointer"
-                        >
-                          <Volume2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 

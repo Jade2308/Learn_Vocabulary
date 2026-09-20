@@ -5,6 +5,7 @@ import { Volume2, RotateCcw, Check, Loader2, ArrowRight, ArrowLeftRight, Keyboar
 import confetti from 'canvas-confetti';
 import { UserVocabulary } from '@/types/db';
 import { playAudio } from '@/lib/audio';
+import { parseMeaningAndMeta, categorizePrepsAndCollocations, getCefrBadgeStyle } from '@/lib/vocab-helper';
 
 export default function ReviewPage() {
   const [cards, setCards] = useState<UserVocabulary[]>([]);
@@ -142,7 +143,15 @@ export default function ReviewPage() {
   }
 
   const currentCard = cards[currentIndex];
-  const word = currentCard.word;
+  const word = currentCard?.word;
+
+  const { pureMeaning, pos, cefr } = word
+    ? parseMeaningAndMeta(word.meaning_vi, word.part_of_speech, word.cefr_level)
+    : { pureMeaning: '', pos: null, cefr: null };
+
+  const { prepositions, collocations } = word
+    ? categorizePrepsAndCollocations(word.prepositions, word.collocations)
+    : { prepositions: [], collocations: [] };
 
   return (
     <div className="max-w-xl mx-auto space-y-5">
@@ -251,7 +260,7 @@ export default function ReviewPage() {
                   Nghĩa tiếng Việt
                 </span>
                 <h2 className="text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 max-w-md mx-auto leading-relaxed">
-                  {word?.meaning_vi}
+                  {pureMeaning || word?.meaning_vi}
                 </h2>
                 {word?.topics && word.topics.length > 0 && (
                   <div className="flex items-center justify-center gap-1.5 flex-wrap pt-1">
@@ -313,17 +322,12 @@ export default function ReviewPage() {
             )}
 
             {/* Thông tin chính của từ */}
-            <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2.5">
+                <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-2xl font-extrabold capitalize text-zinc-900 dark:text-white">
                     {word?.headword}
                   </h3>
-                  {word?.cefr_level && (
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                      {word.cefr_level}
-                    </span>
-                  )}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -335,12 +339,30 @@ export default function ReviewPage() {
                   >
                     <Volume2 className="w-4 h-4" />
                   </button>
+
+                  {/* Badge Loại từ */}
+                  {pos && (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+                      {pos}
+                    </span>
+                  )}
+
+                  {/* Badge Cấp độ CEFR */}
+                  {cefr && (
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border ${getCefrBadgeStyle(
+                        cefr
+                      )}`}
+                    >
+                      Cấp độ {cefr}
+                    </span>
+                  )}
                 </div>
-                {word?.ipa && <p className="text-zinc-500 font-mono text-xs mt-0.5">{word.ipa}</p>}
+                {word?.ipa && <p className="text-zinc-500 font-mono text-xs mt-1">{word.ipa}</p>}
               </div>
               <div className="text-right">
-                <span className="text-[11px] text-zinc-400 uppercase font-semibold">Nghĩa tiếng Việt</span>
-                <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{word?.meaning_vi}</p>
+                <span className="text-[11px] text-zinc-400 uppercase font-semibold block">Nghĩa tiếng Việt</span>
+                <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{pureMeaning || word?.meaning_vi}</p>
               </div>
             </div>
 
@@ -381,15 +403,21 @@ export default function ReviewPage() {
               </div>
             )}
 
-            {/* Cấu trúc & Giới từ */}
-            {word?.prepositions && word.prepositions.length > 0 && (
+            {/* Giới từ đi kèm (Prepositions) */}
+            {prepositions.length > 0 && (
               <div>
-                <span className="text-xs font-semibold uppercase text-zinc-400">Cấu trúc</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase text-zinc-400">Giới từ đi kèm (Prepositions)</span>
+                  <span className="text-[10px] text-zinc-400 italic">Các giới từ chuẩn</span>
+                </div>
                 <div className="space-y-1.5 mt-1.5">
-                  {word.prepositions.slice(0, 2).map((p, idx) => (
+                  {prepositions.slice(0, 3).map((p, idx) => (
                     <div key={idx} className="text-xs text-zinc-600 dark:text-zinc-400 flex items-start justify-between gap-2 p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/40">
                       <div className="flex-1">
-                        <div><span className="font-semibold text-emerald-600 dark:text-emerald-400">{p.pattern}</span>: {p.explanation}</div>
+                        <div>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">{p.pattern}</span>
+                          <span className="ml-1.5 text-[10px] px-1 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-medium">Giới từ</span>: {p.explanation}
+                        </div>
                         {p.example && (
                           <div className="italic text-zinc-500 text-[11px] mt-0.5">&ldquo;{p.example}&rdquo;</div>
                         )}
@@ -410,6 +438,72 @@ export default function ReviewPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Cụm từ thông dụng (Collocations) */}
+            {collocations.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase text-zinc-400">Cụm từ thông dụng (Collocations)</span>
+                  <span className="text-[10px] text-zinc-400 italic">Cách kết hợp từ tự nhiên</span>
+                </div>
+                <div className="space-y-1.5 mt-1.5">
+                  {collocations.slice(0, 3).map((col, idx) => (
+                    <div key={idx} className="text-xs text-zinc-600 dark:text-zinc-400 flex items-start justify-between gap-2 p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/40">
+                      <div className="flex-1">
+                        <div>
+                          <span className="font-semibold text-zinc-900 dark:text-zinc-100">{col.pattern}</span>
+                          <span className="ml-1.5 text-[10px] px-1 py-0.2 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 font-medium">Cụm từ</span>: {col.explanation}
+                        </div>
+                        {col.example && (
+                          <div className="italic text-zinc-500 text-[11px] mt-0.5">&ldquo;{col.example}&rdquo;</div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          playAudio(col.example || col.pattern);
+                        }}
+                        className="p-1 rounded text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer shrink-0"
+                        title="Nghe cụm từ"
+                      >
+                        <Volume2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Từ đồng nghĩa & Trái nghĩa */}
+            {((word?.synonyms && word.synonyms.length > 0) || (word?.antonyms && word.antonyms.length > 0)) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                {word?.synonyms && word.synonyms.length > 0 && (
+                  <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/40 space-y-1">
+                    <span className="text-[10px] font-semibold uppercase text-emerald-600 dark:text-emerald-400">Đồng nghĩa</span>
+                    <div className="flex flex-wrap gap-1">
+                      {word.synonyms.map((s, idx) => (
+                        <span key={idx} className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 text-[11px]">
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {word?.antonyms && word.antonyms.length > 0 && (
+                  <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/40 space-y-1">
+                    <span className="text-[10px] font-semibold uppercase text-rose-600 dark:text-rose-400">Trái nghĩa</span>
+                    <div className="flex flex-wrap gap-1">
+                      {word.antonyms.map((a, idx) => (
+                        <span key={idx} className="px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200/50 text-[11px]">
+                          {a}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
