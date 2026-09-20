@@ -5,7 +5,7 @@ import { Volume2, RotateCcw, Check, Loader2, ArrowRight, ArrowLeftRight, Keyboar
 import confetti from 'canvas-confetti';
 import { UserVocabulary } from '@/types/db';
 import { playAudio } from '@/lib/audio';
-import { parseMeaningAndMeta, categorizePrepsAndCollocations, getCefrBadgeStyle } from '@/lib/vocab-helper';
+import { extractWordMetadata, getCefrBadgeStyle } from '@/lib/vocab-helper';
 
 export default function ReviewPage() {
   const [cards, setCards] = useState<UserVocabulary[]>([]);
@@ -145,13 +145,16 @@ export default function ReviewPage() {
   const currentCard = cards[currentIndex];
   const word = currentCard?.word;
 
-  const { pureMeaning, pos, cefr } = word
-    ? parseMeaningAndMeta(word.meaning_vi, word.part_of_speech, word.cefr_level)
-    : { pureMeaning: '', pos: null, cefr: null };
-
-  const { prepositions, collocations } = word
-    ? categorizePrepsAndCollocations(word.prepositions, word.collocations)
-    : { prepositions: [], collocations: [] };
+  const {
+    pureMeaning,
+    pos,
+    cefr,
+    word_etymology,
+    synonyms,
+    antonyms,
+    prepositions,
+    collocations,
+  } = extractWordMetadata(word);
 
   return (
     <div className="max-w-xl mx-auto space-y-5">
@@ -367,14 +370,14 @@ export default function ReviewPage() {
             </div>
 
             {/* Phân tích gốc từ (Etymology) */}
-            {word?.word_etymology && (
+            {word_etymology && (
               <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/50 text-xs space-y-1">
                 <div className="font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
                   <GitBranch className="w-3.5 h-3.5" />
                   <span>Gốc từ & Cấu tạo (Etymology):</span>
                 </div>
                 <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                  {word.word_etymology}
+                  {word_etymology}
                 </p>
               </div>
             )}
@@ -478,13 +481,13 @@ export default function ReviewPage() {
             )}
 
             {/* Từ đồng nghĩa & Trái nghĩa */}
-            {((word?.synonyms && word.synonyms.length > 0) || (word?.antonyms && word.antonyms.length > 0)) && (
+            {(synonyms.length > 0 || antonyms.length > 0) && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                {word?.synonyms && word.synonyms.length > 0 && (
+                {synonyms.length > 0 && (
                   <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/40 space-y-1">
                     <span className="text-[10px] font-semibold uppercase text-emerald-600 dark:text-emerald-400">Đồng nghĩa</span>
                     <div className="flex flex-wrap gap-1">
-                      {word.synonyms.map((s, idx) => (
+                      {synonyms.map((s, idx) => (
                         <span key={idx} className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 text-[11px]">
                           {s}
                         </span>
@@ -492,11 +495,11 @@ export default function ReviewPage() {
                     </div>
                   </div>
                 )}
-                {word?.antonyms && word.antonyms.length > 0 && (
+                {antonyms.length > 0 && (
                   <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/40 space-y-1">
                     <span className="text-[10px] font-semibold uppercase text-rose-600 dark:text-rose-400">Trái nghĩa</span>
                     <div className="flex flex-wrap gap-1">
-                      {word.antonyms.map((a, idx) => (
+                      {antonyms.map((a, idx) => (
                         <span key={idx} className="px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200/50 text-[11px]">
                           {a}
                         </span>

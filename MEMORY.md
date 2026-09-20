@@ -174,9 +174,20 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
     - Nghĩa tiếng Việt hiển thị nổi bật, rõ ràng, không còn chứa thẻ ngoặc kỹ thuật.
     - Tách thành 2 khu vực trực quan riêng biệt: **"Giới từ đi kèm (Prepositions)"** (có nhãn xanh ngọc `Giới từ` và giải thích giới từ chuẩn) và **"Cụm từ thông dụng (Collocations)"** (có nhãn xanh dương `Cụm từ` và giải thích cách phối từ tự nhiên).
 
+### 14. Tự động hóa cập nhật toàn bộ từ vựng hiện có sang định dạng mới (`npm run update-words`)
+- **Nhu cầu:** Người dùng có sẵn 13 từ trong kho (`resume`, `résumé`, `applicant`, `candidate`, `cover letter`, `opening`, `vacancy`, `qualification`, `track record`, `interview`, `experience`, `reference`, `hire`) và muốn nâng cấp toàn bộ sang cấu trúc giàu ngữ liệu mới.
+- **Xử lý:**
+  - **Cơ chế lưu trữ đa tầng & Fallback ([`lib/vocab-helper.ts`](file:///d:/DATA/Learn_Vocabulary/lib/vocab-helper.ts)):**
+    - Hàm `extractWordMetadata` hỗ trợ trích xuất dữ liệu từ cả 2 nguồn: cột chuyên dụng trong database hoặc đối tượng `__meta__` nhúng an toàn trong JSONB `prepositions`. Nhờ đó, ngay cả khi database chưa chạy lệnh SQL migration, toàn bộ dữ liệu mới (CEFR, loại từ, gốc từ, từ đồng nghĩa/trái nghĩa, collocations) vẫn được lưu trữ và hiển thị 100% trọn vẹn trên cả trang Thêm từ và Flashcard.
+  - **Script tự động hóa ([`scripts/update-all-words.mjs`](file:///d:/DATA/Learn_Vocabulary/scripts/update-all-words.mjs)):**
+    - Tích hợp lệnh `npm run update-words` trong `package.json`.
+    - Script tự động kết nối Supabase, duyệt qua từng từ, gọi Gemini AI và Free Dictionary API để làm giàu lại toàn diện dữ liệu, dọn sạch nghĩa tiếng Việt, phân tách cụm từ và giới từ, kiểm soát tần suất gọi API (1.2s delay).
+    - Đã chạy cập nhật thành công 13/13 từ vựng trong kho đạt tỷ lệ 100% với 0 lỗi.
+
 ---
 
 ## 5. Các bước tiếp theo (Next Steps / Roadmap)
+- [ ] Tùy chọn: Chạy SQL thêm các cột `word_etymology`, `cefr_level`,... trên Supabase Dashboard để chuẩn hóa triệt để cấu trúc bảng (dù hệ thống đã tự động chạy mượt mà qua fallback).
 - [ ] Tích hợp giao diện đăng nhập / đăng ký chính thức qua Google OAuth & Email (Supabase Auth UI).
 - [ ] Thiết lập Cron Job dọn dẹp `review_logs > 60 ngày` trên Supabase (như quy định trong `PROJECT.md`).
 - [ ] Triển khai dự án lên Vercel và cấu hình biến môi trường production.

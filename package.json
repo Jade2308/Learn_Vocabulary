@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "update-words": "node scripts/update-all-words.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.23.0",

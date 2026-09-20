@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Volume2, Loader2, Sparkles, CheckCircle, Tag, GitBranch } from 'lucide-react';
 import { Word } from '@/types/db';
 import { playAudio } from '@/lib/audio';
-import { parseMeaningAndMeta, categorizePrepsAndCollocations, getCefrBadgeStyle } from '@/lib/vocab-helper';
+import { extractWordMetadata, getCefrBadgeStyle } from '@/lib/vocab-helper';
 
 export default function WordsPage() {
   const [inputWord, setInputWord] = useState('');
@@ -42,13 +42,16 @@ export default function WordsPage() {
     }
   };
 
-  const { pureMeaning, pos, cefr } = addedWord
-    ? parseMeaningAndMeta(addedWord.meaning_vi, addedWord.part_of_speech, addedWord.cefr_level)
-    : { pureMeaning: '', pos: null, cefr: null };
-
-  const { prepositions, collocations } = addedWord
-    ? categorizePrepsAndCollocations(addedWord.prepositions, addedWord.collocations)
-    : { prepositions: [], collocations: [] };
+  const {
+    pureMeaning,
+    pos,
+    cefr,
+    word_etymology,
+    synonyms,
+    antonyms,
+    prepositions,
+    collocations,
+  } = extractWordMetadata(addedWord);
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
@@ -149,14 +152,14 @@ export default function WordsPage() {
           </div>
 
           {/* Phân tích gốc từ (Word Etymology) */}
-          {addedWord.word_etymology && (
+          {word_etymology && (
             <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/60 space-y-1.5">
               <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-semibold text-xs uppercase tracking-wider">
                 <GitBranch className="w-4 h-4" />
                 <span>Phân tích gốc từ & Cấu tạo (Etymology)</span>
               </div>
               <p className="text-sm text-zinc-800 dark:text-zinc-200 leading-relaxed">
-                {addedWord.word_etymology}
+                {word_etymology}
               </p>
             </div>
           )}
@@ -265,16 +268,15 @@ export default function WordsPage() {
           )}
 
           {/* Từ đồng nghĩa & Trái nghĩa */}
-          {((addedWord.synonyms && addedWord.synonyms.length > 0) ||
-            (addedWord.antonyms && addedWord.antonyms.length > 0)) && (
+          {(synonyms.length > 0 || antonyms.length > 0) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {addedWord.synonyms && addedWord.synonyms.length > 0 && (
+              {synonyms.length > 0 && (
                 <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 space-y-2">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                     Từ đồng nghĩa (Synonyms)
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {addedWord.synonyms.map((s, idx) => (
+                    {synonyms.map((s, idx) => (
                       <span
                         key={idx}
                         className="text-xs px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-medium border border-emerald-200/60 dark:border-emerald-900"
@@ -286,13 +288,13 @@ export default function WordsPage() {
                 </div>
               )}
 
-              {addedWord.antonyms && addedWord.antonyms.length > 0 && (
+              {antonyms.length > 0 && (
                 <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 space-y-2">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">
                     Từ trái nghĩa (Antonyms)
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {addedWord.antonyms.map((a, idx) => (
+                    {antonyms.map((a, idx) => (
                       <span
                         key={idx}
                         className="text-xs px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 font-medium border border-rose-200/60 dark:border-rose-900"

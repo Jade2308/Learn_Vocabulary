@@ -115,3 +115,64 @@ export function getCefrBadgeStyle(level?: string | null) {
   }
   return 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800';
 }
+
+/**
+ * Trích xuất toàn bộ metadata (CEFR, loại từ, gốc từ, từ đồng nghĩa/trái nghĩa, collocations, prepositions)
+ * Hỗ trợ cả 2 trường hợp:
+ * 1. Database đã có cột riêng (part_of_speech, cefr_level, word_etymology,...)
+ * 2. Database lưu dạng fallback (trong JSONB prepositions)
+ */
+export function extractWordMetadata(word?: any) {
+  if (!word) {
+    return {
+      pureMeaning: '',
+      pos: null,
+      cefr: null,
+      word_etymology: null,
+      synonyms: [] as string[],
+      antonyms: [] as string[],
+      collocations: [] as CategorizedStructureItem[],
+      prepositions: [] as CategorizedStructureItem[],
+    };
+  }
+
+  const { pureMeaning, pos: parsedPos, cefr: parsedCefr } = parseMeaningAndMeta(
+    word.meaning_vi,
+    word.part_of_speech,
+    word.cefr_level
+  );
+
+  let metaItem: any = null;
+  if (Array.isArray(word.prepositions)) {
+    metaItem = word.prepositions.find((p: any) => p?.type === '__meta__');
+  }
+
+  const pos = parsedPos || metaItem?.part_of_speech || null;
+  const cefr = parsedCefr || metaItem?.cefr_level || null;
+  const word_etymology = word.word_etymology || metaItem?.word_etymology || null;
+  const synonyms: string[] = (word.synonyms && word.synonyms.length > 0) ? word.synonyms : (metaItem?.synonyms || []);
+  const antonyms: string[] = (word.antonyms && word.antonyms.length > 0) ? word.antonyms : (metaItem?.antonyms || []);
+  
+  // Lọc bỏ __meta__ khi phân loại prepositions và collocations
+  const cleanItems = Array.isArray(word.prepositions)
+    ? word.prepositions.filter((p: any) => p?.type !== '__meta__')
+    : [];
+
+  const { prepositions, collocations } = categorizePrepsAndCollocations(
+    cleanItems,
+    word.collocations || metaItem?.collocations
+  );
+
+  return {
+    pureMeaning,
+    pos,
+    cefr,
+    word_etymology,
+    synonyms,
+    antonyms,
+    prepositions,
+    collocations,
+  };
+}
+
+
