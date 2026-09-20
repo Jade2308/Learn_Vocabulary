@@ -325,8 +325,9 @@ export default function ReviewPage() {
             )}
 
             {/* Thông tin chính của từ */}
-            <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-3">
-              <div>
+            <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800/80 space-y-3">
+              {/* Dòng 1: Từ vựng chính, nút phát âm, loại từ, cấp độ CEFR & Phiên âm IPA */}
+              <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-2xl font-extrabold capitalize text-zinc-900 dark:text-white">
                     {word?.headword}
@@ -361,11 +362,17 @@ export default function ReviewPage() {
                     </span>
                   )}
                 </div>
-                {word?.ipa && <p className="text-zinc-500 font-mono text-xs mt-1">{word.ipa}</p>}
+                {word?.ipa && <p className="text-zinc-500 font-mono text-xs">{word.ipa}</p>}
               </div>
-              <div className="text-right">
-                <span className="text-[11px] text-zinc-400 uppercase font-semibold block">Nghĩa tiếng Việt</span>
-                <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{pureMeaning || word?.meaning_vi}</p>
+
+              {/* Dòng 2: Nghĩa tiếng Việt - Vị trí cố định, luôn nằm ở hàng riêng rõ ràng, không bị nhảy */}
+              <div className="pt-2.5 border-t border-zinc-200/60 dark:border-zinc-700/60">
+                <span className="text-[11px] text-zinc-400 uppercase font-semibold block mb-0.5">
+                  Nghĩa tiếng Việt
+                </span>
+                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400 leading-snug">
+                  {pureMeaning || word?.meaning_vi}
+                </p>
               </div>
             </div>
 

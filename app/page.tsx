@@ -17,6 +17,8 @@ import {
   Tag,
   Award,
   ChevronRight,
+  Brain,
+  TrendingUp,
 } from 'lucide-react';
 import { UserVocabulary } from '@/types/db';
 import { playAudio } from '@/lib/audio';
@@ -114,33 +116,101 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Banner chào mừng */}
-      <div className="p-8 rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-lg relative overflow-hidden">
-        <div className="relative z-10 max-w-xl space-y-3">
-          <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold uppercase tracking-wider">
-            Phương pháp ghi nhớ thông minh
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-            Nắm vững từ vựng tiếng Anh mỗi ngày
-          </h1>
-          <p className="text-emerald-100 text-sm sm:text-base leading-relaxed">
-            Hệ thống tự động nhắc nhở thời điểm vàng để ôn tập giúp từ vựng ghi sâu vào trí nhớ dài hạn.
-          </p>
-          <div className="pt-2 flex flex-wrap gap-3">
-            <Link
-              href="/review"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 font-semibold text-sm transition-all shadow-sm cursor-pointer"
+      {/* Banner chào mừng & Tối ưu bố cục thị giác */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-600 to-teal-800 text-white shadow-xl relative overflow-hidden">
+        {/* Họa tiết nền trang trí phát sáng đa chiều */}
+        <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute right-1/4 -top-12 w-56 h-56 bg-emerald-300/15 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute left-1/3 -bottom-12 w-48 h-48 bg-teal-300/10 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 lg:gap-8">
+          {/* Cột trái: Thông điệp chính */}
+          <div className="space-y-3.5 max-w-lg lg:max-w-xl">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold uppercase tracking-wider text-emerald-100 border border-white/20">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              Phương pháp ghi nhớ thông minh
+            </span>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight [text-wrap:balance] leading-snug">
+              Nắm vững từ vựng tiếng Anh mỗi ngày
+            </h1>
+            <p className="text-emerald-100 text-sm sm:text-base leading-relaxed max-w-md">
+              Hệ thống tự động nhắc nhở thời điểm vàng để ôn tập giúp từ vựng ghi sâu vào trí nhớ dài hạn.
+            </p>
+            <div className="pt-2 flex flex-wrap items-center gap-3">
+              <Link
+                href="/review"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 font-bold text-sm transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer"
+              >
+                <Layers className="w-4 h-4 text-emerald-600" />
+                <span>Ôn tập ngay ({dueCards.length})</span>
+              </Link>
+              <Link
+                href="/words"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-800/40 hover:bg-emerald-800/60 border border-white/25 text-white font-medium text-sm transition-all hover:-translate-y-0.5 backdrop-blur-xs cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Thêm từ mới</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Cột phải: Card đồ họa kính mờ (Glassmorphism) trực quan, cân bằng bố cục */}
+          <div className="hidden md:flex flex-col gap-3 min-w-[280px] lg:min-w-[310px]">
+            <div
+              onClick={() => setActiveModal('due')}
+              className="p-4 sm:p-5 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 shadow-lg space-y-3.5 hover:bg-white/20 transition-all cursor-pointer group"
+              title="Bấm để xem nhanh danh sách từ cần ôn"
             >
-              <Layers className="w-4 h-4" />
-              <span>Ôn tập ngay ({dueCards.length})</span>
-            </Link>
-            <Link
-              href="/words"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-800/40 hover:bg-emerald-800/60 border border-white/20 text-white font-medium text-sm transition-all cursor-pointer"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Thêm từ mới</span>
-            </Link>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-white/20 text-amber-300 group-hover:scale-105 transition-transform">
+                    <Brain className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-emerald-100">
+                      Ghi nhớ dài hạn
+                    </h4>
+                    <p className="text-sm font-bold text-white">
+                      {dueCards.length > 0 ? 'Thời điểm vàng ôn tập' : 'Đã thuộc bài hôm nay'}
+                    </p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-white/25 text-[11px] font-bold text-white">
+                  {dueCards.length > 0 ? `${dueCards.length} từ cần ôn` : '100%'}
+                </span>
+              </div>
+
+              {/* Thông số nhanh */}
+              <div className="p-3 rounded-xl bg-black/15 border border-white/10 space-y-2 text-xs">
+                <div className="flex items-center justify-between text-emerald-100">
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                    Kho từ vựng
+                  </span>
+                  <span className="font-bold text-white">{totalWordsCount} từ</span>
+                </div>
+                <div className="flex items-center justify-between text-emerald-100">
+                  <span className="flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-amber-300" />
+                    Chủ đề đã lưu
+                  </span>
+                  <span className="font-bold text-white">{topics.length} chủ đề</span>
+                </div>
+              </div>
+
+              {/* Lời khuyên động */}
+              <div className="text-[11px] text-emerald-100/90 italic flex items-center justify-between pt-0.5">
+                <div className="flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-teal-200 shrink-0" />
+                  <span>
+                    {dueCards.length > 0
+                      ? 'Ôn đúng lúc giúp tăng 80% hiệu quả nhớ.'
+                      : 'Tuyệt vời! Tiếp tục duy trì phong độ nhé.'}
+                  </span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-emerald-200 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -195,7 +195,28 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
   - **Nâng cấp Dashboard ([`app/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/page.tsx)):**
     - Biến toàn bộ các thẻ từ vựng trong **Kho từ vựng của bạn** và **Từ vựng cần ôn hôm nay** thành các thẻ tương tác (`cursor-pointer`, `hover:border-emerald-400`, `hover:shadow-md`, hiệu ứng dịch chuyển nhẹ và icon mũi tên `ChevronRight`).
     - Bổ sung `e.stopPropagation()` ở nút loa để người dùng có thể nghe nhanh mà không mở modal khi không cần.
-    - Khi click vào bất kỳ từ nào, modal chi tiết lập tức mở ra với đầy đủ ngữ liệu; khi đóng lại, người dùng trở về đúng danh sách và từ khóa tìm kiếm mà không mất vị trí.
+
+### 16. Cố định vị trí Nghĩa tiếng Việt trên Flashcard Ôn tập ([`app/review/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/review/page.tsx))
+- **Hiện tượng:** Trên mặt sau của Flashcard ôn tập, vị trí phần "Nghĩa tiếng Việt" bị nhảy thất thường: với các từ ngắn (như `Candidate`), nghĩa nằm ở góc trên bên phải; với các từ dài hoặc nghĩa dài (như `Cover Letter` $\rightarrow$ *"thư xin việc, thư giới thiệu (gửi kèm hồ sơ xin việc)"*), nghĩa bị đẩy xuống dưới nhưng nhãn tiêu đề lại căn lề phải (`text-right`), khiến bố cục bị xô lệch và gây mất tập trung thị giác khi ôn tập liên tục.
+- **Nguyên nhân:** Khối header của thẻ dùng `flex flex-wrap items-center justify-between gap-3` đặt phần từ vựng tiếng Anh và phần nghĩa tiếng Việt ngang hàng. Khi từ hoặc nghĩa dài, phần nghĩa bị rớt dòng (`wrap`) và văn bản bị gãy vị trí do thuộc tính căn lề phải.
+- **Xử lý:**
+  - Tái cấu trúc khối thông tin chính thành 2 tầng phân tách rõ ràng bằng đường viền kẻ mờ:
+    - **Tầng 1:** Từ vựng tiếng Anh, nút loa phát âm Web Speech API, Huy hiệu Loại từ (Part of Speech), Huy hiệu Cấp độ CEFR, và Phiên âm quốc tế IPA.
+    - **Tầng 2:** Tiêu đề `NGHĨA TIẾNG VIỆT` và nội dung nghĩa được căn lề trái toàn phần (`text-left`, `w-full`), chữ đậm nổi bật màu xanh ngọc (`text-emerald-600 dark:text-emerald-400 font-bold text-lg`).
+  - Đảm bảo 100% các thẻ từ vựng (từ ngắn hay dài) đều có bố cục hoàn toàn đồng nhất, cố định, chuẩn UX và đồng bộ với giao diện của `WordDetailModal` và trang Thêm từ.
+
+### 17. Tái thiết kế Hero Banner trên Dashboard ([`app/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/page.tsx))
+- **Hiện tượng:**
+  1. Chữ *"ngày"* trong tiêu đề *"Nắm vững từ vựng tiếng Anh mỗi ngày"* bị rớt dòng đơn độc một mình (orphan word typography), khiến bố cục tiêu đề bị cụt lủn và thiếu thẩm mỹ.
+  2. Toàn bộ phần bên phải banner (hơn 60% chiều ngang) bị trống hoác một mảng xanh gradient đơn điệu, toàn bộ nội dung bị dồn về góc trái gây cảm giác vỡ layout hoặc thiếu hình minh họa.
+- **Nguyên nhân:** Khung chứa văn bản bị giới hạn cố định `max-w-xl` mà không có cơ chế ngắt dòng cân bằng, đồng thời hàng banner chưa có phần tử trực quan ở cột phải trên màn hình máy tính/tablet.
+- **Xử lý:**
+  - Áp dụng kỹ thuật cân bằng dòng `[text-wrap:balance]` và điều chỉnh kích thước co giãn linh hoạt (`text-2xl sm:text-3xl lg:text-4xl leading-snug`), triệt tiêu hoàn toàn hiện tượng từ *"ngày"* bị rớt dòng lẻ loi.
+  - Bổ sung Card đồ họa kính mờ **Glassmorphism ("Ghi nhớ dài hạn")** ở cột phải (`md:flex`):
+    - Hiển thị tình trạng ôn tập thực tế: Trạng thái thời điểm vàng (`{dueCards.length} từ cần ôn` hoặc `100% đã thuộc bài`).
+    - Bảng thông số nhanh: Tổng từ trong kho (`{totalWordsCount} từ`) và Số chủ đề (`{topics.length} chủ đề`).
+    - Lời khuyên động tạo cảm hứng và liên kết tương tác mở nhanh Modal danh sách cần ôn.
+  - Thêm hiệu ứng đèn nền phát sáng đa chiều (ambient light blurs) tạo chiều sâu sang trọng và hiện đại cho toàn bộ Hero Section.
 
 ---
 
