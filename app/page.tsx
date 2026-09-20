@@ -16,9 +16,12 @@ import {
   Sparkles,
   Tag,
   Award,
+  ChevronRight,
 } from 'lucide-react';
 import { UserVocabulary } from '@/types/db';
 import { playAudio } from '@/lib/audio';
+import { extractWordMetadata, getCefrBadgeStyle } from '@/lib/vocab-helper';
+import WordDetailModal from '@/components/WordDetailModal';
 
 export default function DashboardPage() {
   const [dueCards, setDueCards] = useState<UserVocabulary[]>([]);
@@ -29,6 +32,10 @@ export default function DashboardPage() {
   // Trạng thái mở Modal tương tác
   const [activeModal, setActiveModal] = useState<'due' | 'all' | 'topics' | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Trạng thái xem Bảng chi tiết từ vựng
+  const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
+  const [detailSourceList, setDetailSourceList] = useState<UserVocabulary[]>([]);
 
   useEffect(() => {
     async function loadData() {
@@ -56,16 +63,42 @@ export default function DashboardPage() {
     loadData();
   }, []);
 
-  // Xử lý đóng modal khi nhấn phím Escape
+  // Xử lý đóng modal và bảng chi tiết khi nhấn phím Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setActiveModal(null);
+        if (selectedWordIndex !== null) {
+          setSelectedWordIndex(null);
+        } else {
+          setActiveModal(null);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [selectedWordIndex]);
+
+  // Các hàm điều khiển Bảng chi tiết từ vựng
+  const handleOpenWordDetail = (index: number, list: UserVocabulary[]) => {
+    setDetailSourceList(list);
+    setSelectedWordIndex(index);
+  };
+
+  const handlePrevWord = () => {
+    if (selectedWordIndex !== null && selectedWordIndex > 0) {
+      setSelectedWordIndex(selectedWordIndex - 1);
+    }
+  };
+
+  const handleNextWord = () => {
+    if (selectedWordIndex !== null && selectedWordIndex < detailSourceList.length - 1) {
+      setSelectedWordIndex(selectedWordIndex + 1);
+    }
+  };
+
+  const handleCloseWordDetail = () => {
+    setSelectedWordIndex(null);
+  };
 
   const totalWordsCount = allWords.length > 0 ? allWords.length : topics.reduce((acc, curr) => acc + curr.count, 0);
 
@@ -307,54 +340,81 @@ export default function DashboardPage() {
                   </p>
                 </div>
               ) : (
-                dueCards.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-4"
-                  >
-                    <div className="space-y-1 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-base text-zinc-900 dark:text-zinc-100 capitalize">
-                          {item.word?.headword}
-                        </span>
-                        {item.word?.ipa && (
-                          <span className="text-xs text-zinc-500 font-mono">
-                            {item.word.ipa}
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => playAudio(item.word?.headword || '', item.word?.audio_url)}
-                          className="p-1 rounded-lg text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
-                          title="Nghe phát âm"
-                        >
-                          <Volume2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium line-clamp-1">
-                        {item.word?.meaning_vi}
-                      </p>
-                      {item.word?.topics && item.word.topics.length > 0 && (
-                        <div className="flex flex-wrap gap-1 pt-1">
-                          {item.word.topics.map((t) => (
-                            <span
-                              key={t}
-                              className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
-                            >
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                dueCards.map((item, idx) => {
+                  const currentWord = item.word || item.words;
+                  const { pureMeaning, pos, cefr } = extractWordMetadata(currentWord);
 
-                    <div className="text-right shrink-0">
-                      <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400">
-                        Cấp độ {item.repetition_level}
-                      </span>
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleOpenWordDetail(idx, dueCards)}
+                      className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 hover:border-amber-400 dark:hover:border-amber-600 hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between gap-4 cursor-pointer group"
+                      title="Bấm để xem chi tiết đầy đủ của từ"
+                    >
+                      <div className="space-y-1 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-base text-zinc-900 dark:text-zinc-100 capitalize group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
+                            {currentWord?.headword}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              playAudio(currentWord?.headword || '', currentWord?.audio_url);
+                            }}
+                            className="p-1 rounded-lg text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
+                            title="Nghe phát âm"
+                          >
+                            <Volume2 className="w-4 h-4" />
+                          </button>
+                          {pos && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
+                              {pos}
+                            </span>
+                          )}
+                          {cefr && (
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getCefrBadgeStyle(
+                                cefr
+                              )}`}
+                            >
+                              {cefr}
+                            </span>
+                          )}
+                          {currentWord?.ipa && (
+                            <span className="text-xs text-zinc-500 font-mono">
+                              {currentWord.ipa}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium line-clamp-1">
+                          {pureMeaning || currentWord?.meaning_vi}
+                        </p>
+                        {currentWord?.topics && currentWord.topics.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {currentWord.topics.map((t) => (
+                              <span
+                                key={t}
+                                className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+                              >
+                                {t}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400">
+                          Cấp độ {item.repetition_level}
+                        </span>
+                        <div className="p-1 rounded-lg text-zinc-400 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all">
+                          <ChevronRight className="w-4 h-4" />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -467,87 +527,114 @@ export default function DashboardPage() {
                   </p>
                 </div>
               ) : (
-                filteredWords.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 hover:border-emerald-200 dark:hover:border-emerald-900 transition-colors space-y-2"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-lg text-zinc-900 dark:text-zinc-100 capitalize">
-                            {item.word?.headword}
-                          </span>
-                          {item.word?.ipa && (
-                            <span className="text-xs text-zinc-500 font-mono">
-                              {item.word.ipa}
+                filteredWords.map((item, idx) => {
+                  const currentWord = item.word || item.words;
+                  const { pureMeaning, pos, cefr } = extractWordMetadata(currentWord);
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleOpenWordDetail(idx, filteredWords)}
+                      className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 hover:border-emerald-400 dark:hover:border-emerald-600 hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 space-y-2 cursor-pointer group"
+                      title="Bấm để xem chi tiết đầy đủ của từ"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-bold text-lg text-zinc-900 dark:text-zinc-100 capitalize group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
+                              {currentWord?.headword}
                             </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => playAudio(item.word?.headword || '', item.word?.audio_url)}
-                            className="p-1 rounded-lg text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
-                            title="Nghe phát âm"
-                          >
-                            <Volume2 className="w-4 h-4" />
-                          </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                playAudio(currentWord?.headword || '', currentWord?.audio_url);
+                              }}
+                              className="p-1 rounded-lg text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
+                              title="Nghe phát âm"
+                            >
+                              <Volume2 className="w-4 h-4" />
+                            </button>
+                            {pos && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
+                                {pos}
+                              </span>
+                            )}
+                            {cefr && (
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getCefrBadgeStyle(
+                                  cefr
+                                )}`}
+                              >
+                                {cefr}
+                              </span>
+                            )}
+                            {currentWord?.ipa && (
+                              <span className="text-xs text-zinc-500 font-mono">
+                                {currentWord.ipa}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400 mt-0.5">
+                            {pureMeaning || currentWord?.meaning_vi}
+                          </p>
                         </div>
-                        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400 mt-0.5">
-                          {item.word?.meaning_vi}
-                        </p>
-                      </div>
 
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        <span
-                          className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
-                            item.repetition_level >= 3
-                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400'
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
+                              item.repetition_level >= 3
+                                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400'
+                                : item.repetition_level > 0
+                                ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
+                                : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
+                            }`}
+                          >
+                            {item.repetition_level >= 3
+                              ? 'Thuộc vững'
                               : item.repetition_level > 0
-                              ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
-                              : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
-                          }`}
-                        >
-                          {item.repetition_level >= 3
-                            ? 'Thuộc vững'
-                            : item.repetition_level > 0
-                            ? `Đang nhớ (${item.repetition_level})`
-                            : 'Từ mới'}
-                        </span>
+                              ? `Đang nhớ (${item.repetition_level})`
+                              : 'Từ mới'}
+                          </span>
+                          <div className="p-1 rounded-lg text-zinc-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all">
+                            <ChevronRight className="w-4 h-4" />
+                          </div>
+                        </div>
                       </div>
+
+                      {/* Word Family Preview */}
+                      {currentWord?.word_family && currentWord.word_family.length > 0 && (
+                        <div className="pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60 flex flex-wrap gap-1.5 items-center">
+                          <span className="text-[11px] text-zinc-400 font-medium">Họ từ:</span>
+                          {currentWord.word_family.slice(0, 3).map((wf, wfIdx) => (
+                            <span
+                              key={wfIdx}
+                              className="text-xs px-2 py-0.5 rounded-md bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"
+                            >
+                              <span className="font-medium">{wf.word}</span>{' '}
+                              <span className="text-[10px] text-zinc-400">({wf.part_of_speech})</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Topics badges */}
+                      {currentWord?.topics && currentWord.topics.length > 0 && (
+                        <div className="flex flex-wrap gap-1 items-center">
+                          <Tag className="w-3 h-3 text-zinc-400" />
+                          {currentWord.topics.map((t) => (
+                            <span
+                              key={t}
+                              className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-
-                    {/* Word Family Preview */}
-                    {item.word?.word_family && item.word.word_family.length > 0 && (
-                      <div className="pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60 flex flex-wrap gap-1.5 items-center">
-                        <span className="text-[11px] text-zinc-400 font-medium">Họ từ:</span>
-                        {item.word.word_family.slice(0, 3).map((wf, idx) => (
-                          <span
-                            key={idx}
-                            className="text-xs px-2 py-0.5 rounded-md bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"
-                          >
-                            <span className="font-medium">{wf.word}</span>{' '}
-                            <span className="text-[10px] text-zinc-400">({wf.part_of_speech})</span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Topics badges */}
-                    {item.word?.topics && item.word.topics.length > 0 && (
-                      <div className="flex flex-wrap gap-1 items-center">
-                        <Tag className="w-3 h-3 text-zinc-400" />
-                        {item.word.topics.map((t) => (
-                          <span
-                            key={t}
-                            className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -675,6 +762,28 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* ======================================================== */}
+      {/* MODAL 4: BẢNG CHI TIẾT ĐẦY ĐỦ CỦA TỪ VỰNG                */}
+      {/* ======================================================== */}
+      <WordDetailModal
+        isOpen={selectedWordIndex !== null && detailSourceList[selectedWordIndex] !== undefined}
+        onClose={handleCloseWordDetail}
+        word={
+          selectedWordIndex !== null && detailSourceList[selectedWordIndex]
+            ? detailSourceList[selectedWordIndex].word || detailSourceList[selectedWordIndex].words || null
+            : null
+        }
+        userVocab={
+          selectedWordIndex !== null && detailSourceList[selectedWordIndex]
+            ? detailSourceList[selectedWordIndex]
+            : null
+        }
+        onPrev={handlePrevWord}
+        onNext={handleNextWord}
+        currentIndex={selectedWordIndex ?? 0}
+        totalCount={detailSourceList.length}
+      />
     </div>
   );
 }

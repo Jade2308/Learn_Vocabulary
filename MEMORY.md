@@ -184,6 +184,19 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
     - Script tự động kết nối Supabase, duyệt qua từng từ, gọi Gemini AI và Free Dictionary API để làm giàu lại toàn diện dữ liệu, dọn sạch nghĩa tiếng Việt, phân tách cụm từ và giới từ, kiểm soát tần suất gọi API (1.2s delay).
     - Đã chạy cập nhật thành công 13/13 từ vựng trong kho đạt tỷ lệ 100% với 0 lỗi.
 
+### 15. Bổ sung Bảng Chi tiết Đầy đủ Từ vựng khi Click trong Kho Từ vựng (`WordDetailModal`)
+- **Nhu cầu:** Khi người dùng vào Kho từ vựng cá nhân, họ muốn bấm vào bất kỳ từ vựng nào thì hiện ra bảng đầy đủ toàn bộ thông tin chi tiết giống như lúc mới thêm từ (IPA, loại từ, CEFR, gốc từ Etymology, họ từ, giới từ, collocations, đồng nghĩa, trái nghĩa, ví dụ song ngữ và chủ đề).
+- **Xử lý:**
+  - **Tạo Component mới ([`components/WordDetailModal.tsx`](file:///d:/DATA/Learn_Vocabulary/components/WordDetailModal.tsx)):**
+    - Modal độc lập, chuyên sâu với giao diện chuẩn mực đồng bộ 100% với trang Thêm từ ([`app/words/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/words/page.tsx)).
+    - Tích hợp điều hướng linh hoạt: nút `← Từ trước` và `Từ tiếp theo →`, số thứ tự từ hiện tại (`[x / y]`), phím tắt bàn phím mũi tên trái/phải (`ArrowLeft` / `ArrowRight`), phím `Escape` đóng nhanh.
+    - Tích hợp Web Speech API tức thì (0ms delay) cho từ chính, từng biến thể họ từ, câu ví dụ giới từ, cụm từ collocation và ví dụ song ngữ.
+    - Hiển thị Huy hiệu Cấp độ ghi nhớ (Thuộc vững / Đang nhớ / Từ mới) theo dữ liệu học tập cá nhân.
+  - **Nâng cấp Dashboard ([`app/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/page.tsx)):**
+    - Biến toàn bộ các thẻ từ vựng trong **Kho từ vựng của bạn** và **Từ vựng cần ôn hôm nay** thành các thẻ tương tác (`cursor-pointer`, `hover:border-emerald-400`, `hover:shadow-md`, hiệu ứng dịch chuyển nhẹ và icon mũi tên `ChevronRight`).
+    - Bổ sung `e.stopPropagation()` ở nút loa để người dùng có thể nghe nhanh mà không mở modal khi không cần.
+    - Khi click vào bất kỳ từ nào, modal chi tiết lập tức mở ra với đầy đủ ngữ liệu; khi đóng lại, người dùng trở về đúng danh sách và từ khóa tìm kiếm mà không mất vị trí.
+
 ---
 
 ## 5. Các bước tiếp theo (Next Steps / Roadmap)
