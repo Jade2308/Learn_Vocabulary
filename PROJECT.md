@@ -65,11 +65,17 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE public.words (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     headword VARCHAR(100) NOT NULL UNIQUE,
+    part_of_speech VARCHAR(50),
     ipa VARCHAR(100),
+    cefr_level VARCHAR(10),
     audio_url TEXT,
     meaning_vi TEXT NOT NULL,
+    word_etymology TEXT,
     word_family JSONB DEFAULT '[]'::jsonb,   -- [{part_of_speech, word, meaning_vi}]
+    collocations JSONB DEFAULT '[]'::jsonb,  -- [{phrase, meaning_vi}]
     prepositions JSONB DEFAULT '[]'::jsonb,  -- [{pattern, explanation, example}]
+    synonyms TEXT[] DEFAULT ARRAY[]::TEXT[],
+    antonyms TEXT[] DEFAULT ARRAY[]::TEXT[],
     examples JSONB DEFAULT '[]'::jsonb,      -- [{en, vi}]
     topics TEXT[] DEFAULT ARRAY[]::TEXT[],
     created_at TIMESTAMPTZ DEFAULT NOW()
