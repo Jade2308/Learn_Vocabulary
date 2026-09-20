@@ -134,3 +134,34 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function GET(req: NextRequest) {
+  try {
+    const userId = await getAuthUserId(req);
+
+    const { data, error } = await supabaseAdmin
+      .from('user_vocabulary')
+      .select(`
+        *,
+        words (*)
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching user words:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    const formatted = (data || []).map((item) => ({
+      ...item,
+      word: item.words,
+    }));
+
+    return NextResponse.json(formatted);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Internal Server Error';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+

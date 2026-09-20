@@ -103,6 +103,13 @@ export default function CramPage() {
 
   useEffect(() => {
     fetchTopics();
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const topicParam = params.get('topic');
+      if (topicParam) {
+        setSelectedTopic(topicParam);
+      }
+    }
   }, []);
 
   const fetchTopics = async () => {

@@ -134,9 +134,19 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
   - Tái cấu trúc [`app/cram/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/cram/page.tsx): Xây dựng 6 chế độ luyện tập: Nhìn nghĩa gõ từ (`meaning_type`), Trắc nghiệm (`quiz`), Ghép thẻ nối cặp (`matching`), Sắp xếp chữ cái (`scramble`), Điền từ vào câu (`fill`), Nghe chép chính tả (`dictation`).
   - Toàn bộ đều phát âm tức thì qua Web Speech API (0ms delay), có gợi ý chữ cái đầu và tổng kết điểm số kèm pháo hoa giấy confetti sinh động.
 
+### 10. Tương tác hóa 3 thẻ thống kê trên Dashboard (Cần ôn hôm nay, Tổng từ trong kho, Chủ đề phân loại)
+- **Nhu cầu:** Người dùng muốn tương tác trực tiếp (click, xem chi tiết, tìm kiếm, điều hướng) với 3 thẻ thống kê nhanh trên Dashboard thay vì chỉ là các thẻ số liệu tĩnh.
+- **Xử lý:**
+  - **Trải nghiệm trực quan:** Nâng cấp 3 thẻ với hiệu ứng hover nổi bật (`hover:-translate-y-1`, `hover:shadow-md`, viền sáng màu thương hiệu amber/emerald/purple, con trỏ pointer, nhãn lối tắt và icon mũi tên động).
+  - **Thẻ 1 — Cần ôn hôm nay:** Mở Modal xem nhanh danh sách từ đến hạn ôn tập kèm phiên âm IPA, nghĩa tiếng Việt, phát âm tức thì (0ms delay) và nút CTA *"Bắt đầu ôn tập ngay"* dẫn tới `/review`.
+  - **Thẻ 2 — Tổng từ trong kho:** Xây dựng API `GET /api/words` để lấy toàn bộ từ vựng của người dùng; mở Modal *Kho từ vựng cá nhân* kèm thanh tìm kiếm tức thì theo tiếng Anh/tiếng Việt/chủ đề, xem cấp độ ghi nhớ, họ từ liên quan, nghe phát âm và nút CTA *"Thêm từ mới"* dẫn tới `/words`.
+  - **Thẻ 3 — Chủ đề phân loại:** Mở Modal *Chủ đề từ vựng* liệt kê tất cả chủ đề kèm số lượng từ, mỗi chủ đề có nút *"Luyện tập"* dẫn thẳng sang `/cram?topic=...`. Trang Cram được nâng cấp để tự động bắt tham số `?topic=...` từ URL và kích hoạt chủ đề ngay lập tức.
+  - **Tiện ích:** Hỗ trợ đóng Modal linh hoạt bằng phím `Escape`, nút `X`, nút `Đóng` hoặc click ra ngoài vùng nền mờ (Backdrop).
+
 ---
 
 ## 5. Các bước tiếp theo (Next Steps / Roadmap)
 - [ ] Tích hợp giao diện đăng nhập / đăng ký chính thức qua Google OAuth & Email (Supabase Auth UI).
 - [ ] Thiết lập Cron Job dọn dẹp `review_logs > 60 ngày` trên Supabase (như quy định trong `PROJECT.md`).
 - [ ] Triển khai dự án lên Vercel và cấu hình biến môi trường production.
+
