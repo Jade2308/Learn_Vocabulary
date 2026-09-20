@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Volume2, RotateCcw, Check, Loader2, ArrowRight, ArrowLeftRight, Keyboard, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
+import { Volume2, RotateCcw, Check, Loader2, ArrowRight, ArrowLeftRight, Keyboard, Sparkles, CheckCircle2, XCircle, GitBranch } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { UserVocabulary } from '@/types/db';
 import { playAudio } from '@/lib/audio';
@@ -319,6 +319,11 @@ export default function ReviewPage() {
                   <h3 className="text-2xl font-extrabold capitalize text-zinc-900 dark:text-white">
                     {word?.headword}
                   </h3>
+                  {word?.cefr_level && (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                      {word.cefr_level}
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -338,6 +343,19 @@ export default function ReviewPage() {
                 <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{word?.meaning_vi}</p>
               </div>
             </div>
+
+            {/* Phân tích gốc từ (Etymology) */}
+            {word?.word_etymology && (
+              <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/50 text-xs space-y-1">
+                <div className="font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                  <GitBranch className="w-3.5 h-3.5" />
+                  <span>Gốc từ & Cấu tạo (Etymology):</span>
+                </div>
+                <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                  {word.word_etymology}
+                </p>
+              </div>
+            )}
 
             {/* Các dạng từ liên quan */}
             {word?.word_family && word.word_family.length > 0 && (

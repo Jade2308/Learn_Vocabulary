@@ -15,11 +15,21 @@ export interface ExampleItem {
   vi: string;
 }
 
+export interface CollocationItem {
+  phrase: string;
+  meaning_vi: string;
+}
+
 export interface GeminiEnrichmentResponse {
   headword: string;
   part_of_speech?: string;
   ipa?: string;
+  cefr_level?: string;
   meaning_vi: string;
+  word_etymology?: string;
+  collocations?: CollocationItem[];
+  synonyms?: string[];
+  antonyms?: string[];
   word_family: WordFamilyItem[];
   prepositions: PrepositionItem[];
   examples: ExampleItem[];
@@ -31,8 +41,13 @@ export interface Word {
   headword: string;
   ipa: string | null;
   part_of_speech?: string | null;
+  cefr_level?: string | null;
   audio_url: string | null;
   meaning_vi: string;
+  word_etymology?: string | null;
+  collocations?: CollocationItem[];
+  synonyms?: string[];
+  antonyms?: string[];
   word_family: WordFamilyItem[];
   prepositions: PrepositionItem[];
   examples: ExampleItem[];

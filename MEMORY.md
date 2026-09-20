@@ -150,11 +150,21 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
   - **Đồng bộ Schema & Interface:** Bổ sung `part_of_speech` và `ipa` vào JSON Schema của Gemini SDK và [`types/db.ts`](file:///d:/DATA/Learn_Vocabulary/types/db.ts).
   - **Tối ưu hóa API ([`app/api/words/route.ts`](file:///d:/DATA/Learn_Vocabulary/app/api/words/route.ts)):** Ghép loại từ trực tiếp vào nghĩa tiếng Việt dạng `(loại từ) nghĩa tiếng Việt` để hiển thị đồng bộ trên toàn bộ giao diện; sử dụng phiên âm từ Gemini làm phương án dự phòng chuẩn xác 100% nếu Free Dictionary API thiếu IPA.
 
+### 12. Nâng cấp toàn diện Prompt AI: Phân tích gốc từ (Etymology), Cấp độ CEFR, Collocations, Synonyms & Antonyms
+- **Nhu cầu:** Người học cần hiểu sâu bản chất cấu tạo từ vựng theo phương pháp khoa học (Tiền tố + Gốc từ Latin/Hy Lạp + Hậu tố) thay vì liên tưởng âm thanh gượng gạo; đồng thời cần biết cấp độ từ (CEFR A1-C2), cụm từ đi kèm tự nhiên (Collocations) và từ đồng nghĩa/trái nghĩa để phục vụ thi cử (IELTS/TOEIC) và giao tiếp.
+- **Xử lý:**
+  - **Kiểm thử chặt chẽ:** Đã kiểm thử prompt với các từ học thuật phức tạp (`resilient`) lẫn từ đơn giản (`happy`) qua Gemini SDK, kết quả phản hồi 100% chuẩn JSON schema và phân tích gốc từ sâu sắc.
+  - **Cập nhật Prompt & Schema ([`lib/ai/gemini.ts`](file:///d:/DATA/Learn_Vocabulary/lib/ai/gemini.ts)):** Bổ sung 5 trường mới: `cefr_level`, `word_etymology`, `collocations`, `synonyms`, `antonyms`.
+  - **Cập nhật Data Model ([`types/db.ts`](file:///d:/DATA/Learn_Vocabulary/types/db.ts)):** Định nghĩa `CollocationItem`, bổ sung các trường vào `GeminiEnrichmentResponse` và `Word`.
+  - **Tối ưu hóa Backend ([`app/api/words/route.ts`](file:///d:/DATA/Learn_Vocabulary/app/api/words/route.ts)):** Ghép cấp độ CEFR và loại từ vào nghĩa tiếng Việt; gộp Collocations vào cấu trúc để luôn lưu trữ an toàn; cơ chế fallback tự động thích ứng với database.
+  - **Giao diện người dùng ([`app/words/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/words/page.tsx) & [`app/review/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/review/page.tsx)):** Hiển thị Huy hiệu cấp độ CEFR (A1-C2), Hộp phân tích gốc từ & cấu tạo từ (Etymology) nổi bật với icon nhánh từ, Danh mục từ đồng nghĩa (xanh) & trái nghĩa (hồng).
+
 ---
 
 ## 5. Các bước tiếp theo (Next Steps / Roadmap)
 - [ ] Tích hợp giao diện đăng nhập / đăng ký chính thức qua Google OAuth & Email (Supabase Auth UI).
 - [ ] Thiết lập Cron Job dọn dẹp `review_logs > 60 ngày` trên Supabase (như quy định trong `PROJECT.md`).
 - [ ] Triển khai dự án lên Vercel và cấu hình biến môi trường production.
+
 
 

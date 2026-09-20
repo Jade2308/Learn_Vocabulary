@@ -52,27 +52,70 @@ export async function POST(req: NextRequest) {
 
         const formattedMeaning =
           geminiResult.part_of_speech && !geminiResult.meaning_vi.startsWith('(')
-            ? `(${geminiResult.part_of_speech}) ${geminiResult.meaning_vi}`
+            ? `(${geminiResult.part_of_speech}${geminiResult.cefr_level ? ` • ${geminiResult.cefr_level}` : ''}) ${geminiResult.meaning_vi}`
             : geminiResult.meaning_vi;
 
-        const { data: insertedWord, error: insertWordError } = await supabaseAdmin
+        // Tích hợp Collocations vào Prepositions để luôn được lưu và hiển thị ngay cả khi DB chưa thêm cột riêng
+        const existingPreps = geminiResult.prepositions || [];
+        const extraCollocations = (geminiResult.collocations || []).map((c) => ({
+          pattern: c.phrase,
+          explanation: c.meaning_vi,
+        }));
+        const combinedPrepositions = [...existingPreps, ...extraCollocations];
+
+        const standardPayload = {
+          headword,
+          ipa: dictResult.ipa || geminiResult.ipa,
+          audio_url: dictResult.audio_url,
+          meaning_vi: formattedMeaning,
+          word_family: geminiResult.word_family || [],
+          prepositions: combinedPrepositions,
+          examples: geminiResult.examples || [],
+          topics: geminiResult.topics || [],
+        };
+
+        const extendedPayload = {
+          ...standardPayload,
+          part_of_speech: geminiResult.part_of_speech,
+          cefr_level: geminiResult.cefr_level,
+          word_etymology: geminiResult.word_etymology,
+          collocations: geminiResult.collocations || [],
+          synonyms: geminiResult.synonyms || [],
+          antonyms: geminiResult.antonyms || [],
+        };
+
+        // Thử lưu với các cột mở rộng (nếu bảng words đã chạy migration)
+        const { data: extData, error: extError } = await supabaseAdmin
           .from('words')
-          .insert({
-            headword,
-            ipa: dictResult.ipa || geminiResult.ipa,
-            audio_url: dictResult.audio_url,
-            meaning_vi: formattedMeaning,
-            word_family: geminiResult.word_family || [],
-            prepositions: geminiResult.prepositions || [],
-            examples: geminiResult.examples || [],
-            topics: geminiResult.topics || [],
-          })
+          .insert(extendedPayload)
           .select()
           .single();
 
-        if (insertWordError) {
-          console.error('Error inserting word to words:', insertWordError);
-          return NextResponse.json({ error: insertWordError.message }, { status: 500 });
+        let insertedWord: any = null;
+        if (!extError && extData) {
+          insertedWord = extData;
+        } else {
+          // Fallback tự động: nếu database chưa tạo cột riêng, lưu theo schema chuẩn an toàn 100%
+          const { data: stdData, error: stdError } = await supabaseAdmin
+            .from('words')
+            .insert(standardPayload)
+            .select()
+            .single();
+
+          if (stdError) {
+            console.error('Error inserting word to words:', stdError);
+            return NextResponse.json({ error: stdError.message }, { status: 500 });
+          }
+
+          insertedWord = {
+            ...stdData,
+            part_of_speech: geminiResult.part_of_speech,
+            cefr_level: geminiResult.cefr_level,
+            word_etymology: geminiResult.word_etymology,
+            collocations: geminiResult.collocations || [],
+            synonyms: geminiResult.synonyms || [],
+            antonyms: geminiResult.antonyms || [],
+          };
         }
 
         wordRecord = insertedWord as Word;

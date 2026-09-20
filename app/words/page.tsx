@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Volume2, Loader2, Sparkles, CheckCircle, Tag } from 'lucide-react';
+import { Volume2, Loader2, Sparkles, CheckCircle, Tag, GitBranch } from 'lucide-react';
 import { Word } from '@/types/db';
 import { playAudio } from '@/lib/audio';
 
@@ -95,10 +95,15 @@ export default function WordsPage() {
                 <h2 className="text-3xl font-extrabold capitalize text-zinc-900 dark:text-white">
                   {addedWord.headword}
                 </h2>
+                {addedWord.cefr_level && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                    {addedWord.cefr_level}
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => playAudio(addedWord.headword, addedWord.audio_url)}
-                  className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 hover:bg-emerald-200 transition-colors"
+                  className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 hover:bg-emerald-200 transition-colors cursor-pointer"
                   title="Phát âm"
                 >
                   <Volume2 className="w-5 h-5" />
@@ -120,6 +125,61 @@ export default function WordsPage() {
               {addedWord.meaning_vi}
             </p>
           </div>
+
+          {/* Phân tích gốc từ (Word Etymology) */}
+          {addedWord.word_etymology && (
+            <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/60 space-y-1.5">
+              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-semibold text-xs uppercase tracking-wider">
+                <GitBranch className="w-4 h-4" />
+                <span>Phân tích gốc từ & Cấu tạo (Etymology)</span>
+              </div>
+              <p className="text-sm text-zinc-800 dark:text-zinc-200 leading-relaxed">
+                {addedWord.word_etymology}
+              </p>
+            </div>
+          )}
+
+          {/* Từ đồng nghĩa & Trái nghĩa */}
+          {((addedWord.synonyms && addedWord.synonyms.length > 0) ||
+            (addedWord.antonyms && addedWord.antonyms.length > 0)) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {addedWord.synonyms && addedWord.synonyms.length > 0 && (
+                <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 space-y-2">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                    Từ đồng nghĩa (Synonyms)
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {addedWord.synonyms.map((s, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-medium border border-emerald-200/60 dark:border-emerald-900"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {addedWord.antonyms && addedWord.antonyms.length > 0 && (
+                <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 space-y-2">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                    Từ trái nghĩa (Antonyms)
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {addedWord.antonyms.map((a, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 font-medium border border-rose-200/60 dark:border-rose-900"
+                      >
+                        {a}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {addedWord.word_family && addedWord.word_family.length > 0 && (
             <div>
