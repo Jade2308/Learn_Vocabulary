@@ -147,16 +147,16 @@ export default function WordDetailModal({
         {/* ================= Body Modal ================= */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
           {/* Hàng 1: Từ vựng chính & Các huy hiệu */}
-          <div className="flex items-start justify-between border-b border-zinc-100 dark:border-zinc-800 pb-4 gap-4">
-            <div className="space-y-1.5 flex-1">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h2 className="text-2xl sm:text-3xl font-extrabold capitalize text-zinc-900 dark:text-white">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between border-b border-zinc-100 dark:border-zinc-800 pb-4 gap-3 sm:gap-4">
+            <div className="space-y-1.5 flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                <h2 className="text-2xl sm:text-3xl font-extrabold capitalize text-zinc-900 dark:text-white break-words">
                   {word.headword}
                 </h2>
                 <button
                   type="button"
                   onClick={() => playAudio(word.headword, word.audio_url)}
-                  className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 hover:bg-emerald-200 transition-colors cursor-pointer"
+                  className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 hover:bg-emerald-200 transition-colors cursor-pointer shrink-0"
                   title="Nghe phát âm chuẩn (0ms)"
                 >
                   <Volume2 className="w-5 h-5" />
@@ -186,7 +186,7 @@ export default function WordDetailModal({
             </div>
 
             {/* Badge Trạng thái ghi nhớ */}
-            <div className="shrink-0 text-right">
+            <div className="self-start sm:self-auto shrink-0">
               <span
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
                   repetitionLevel >= 3
@@ -445,18 +445,18 @@ export default function WordDetailModal({
         </div>
 
         {/* ================= Footer Modal ================= */}
-        <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/70 flex flex-wrap items-center justify-between gap-3">
+        <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/70 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Nút điều hướng trước/sau */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between sm:justify-start gap-2">
             {onPrev && (
               <button
                 type="button"
                 onClick={onPrev}
                 disabled={currentIndex === 0}
-                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1 px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Từ trước</span>
+                <span>Từ trước</span>
               </button>
             )}
             {onNext && (
@@ -464,25 +464,25 @@ export default function WordDetailModal({
                 type="button"
                 onClick={onNext}
                 disabled={hasPagination && currentIndex === totalCount - 1}
-                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1 px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
-                <span className="hidden sm:inline">Từ tiếp theo</span>
+                <span>Từ tiếp theo</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-medium text-xs sm:text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="flex-1 sm:flex-initial px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-medium text-xs sm:text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-center"
             >
               Đóng
             </button>
             <Link
               href="/review"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm transition-colors shadow-sm cursor-pointer"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm transition-colors shadow-sm cursor-pointer text-center"
             >
               <Layers className="w-4 h-4" />
               <span>Ôn tập thông minh</span>

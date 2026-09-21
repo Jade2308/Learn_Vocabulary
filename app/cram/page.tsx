@@ -417,7 +417,7 @@ export default function CramPage() {
           </p>
         </div>
 
-        <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
+        <div className="p-4 sm:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
           {/* Chọn chủ đề */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -637,20 +637,20 @@ export default function CramPage() {
           </div>
 
           {!answered && (
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2.5">
               <button
                 type="button"
                 onClick={() => setShowHint(true)}
                 disabled={showHint}
-                className="px-4 py-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40"
+                className="w-full sm:w-auto px-4 py-3 sm:py-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40"
               >
-                <Lightbulb className="w-4 h-4 text-amber-500" />
+                <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
                 <span>{showHint ? `Chữ cái đầu: ${firstLetter.toUpperCase()}` : 'Gợi ý chữ cái đầu'}</span>
               </button>
               <button
                 type="submit"
                 disabled={!userMeaningTypeInput.trim()}
-                className="flex-1 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+                className="w-full sm:flex-1 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all shadow-sm disabled:opacity-50 cursor-pointer text-center"
               >
                 Kiểm tra kết quả
               </button>
@@ -840,10 +840,10 @@ export default function CramPage() {
                 key={tile.id}
                 onClick={() => handleTileClick(tile)}
                 disabled={tile.matched}
-                className={`p-4 min-h-[76px] rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 cursor-pointer shadow-sm ${tileStyle}`}
+                className={`p-2.5 sm:p-4 min-h-[64px] sm:min-h-[76px] rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 cursor-pointer shadow-sm ${tileStyle}`}
               >
                 <span
-                  className={`text-sm sm:text-base font-semibold ${
+                  className={`text-xs sm:text-base font-semibold max-w-full break-words leading-snug ${
                     tile.type === 'en' ? 'capitalize font-bold text-indigo-900 dark:text-indigo-300' : ''
                   }`}
                 >
@@ -900,7 +900,7 @@ export default function CramPage() {
                 type="button"
                 onClick={() => letterId !== undefined && handleRemoveLetter(letterId)}
                 disabled={answered || letterId === undefined}
-                className={`w-10 h-12 rounded-xl border-2 font-extrabold text-lg flex items-center justify-center transition-all ${
+                className={`w-9 h-11 sm:w-10 sm:h-12 rounded-xl border-2 font-extrabold text-base sm:text-lg flex items-center justify-center transition-all ${
                   letter
                     ? 'border-amber-500 bg-white dark:bg-zinc-900 text-amber-600 shadow-sm cursor-pointer hover:border-red-400 hover:text-red-500'
                     : 'border-dashed border-zinc-300 dark:border-zinc-600 text-transparent'
@@ -915,14 +915,14 @@ export default function CramPage() {
         {/* Các chữ cái khả dụng để chọn */}
         {!answered && (
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
               {scrambleTiles.map((tile) => (
                 <button
                   key={tile.id}
                   type="button"
                   onClick={() => handlePickLetter(tile)}
                   disabled={tile.used}
-                  className={`w-11 h-12 rounded-xl border font-bold text-lg transition-all shadow-sm ${
+                  className={`w-9 h-11 sm:w-11 sm:h-12 rounded-xl border font-bold text-base sm:text-lg transition-all shadow-sm ${
                     tile.used
                       ? 'opacity-20 border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800 cursor-not-allowed'
                       : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 hover:border-amber-500 hover:scale-105 active:scale-95 cursor-pointer'
@@ -933,20 +933,20 @@ export default function CramPage() {
               ))}
             </div>
 
-            <div className="flex items-center justify-between gap-2 pt-2">
+            <div className="flex items-center justify-between gap-1.5 sm:gap-2 pt-2">
               <button
                 type="button"
                 onClick={handleScrambleBackspace}
                 disabled={selectedLetterIds.length === 0}
-                className="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 cursor-pointer"
+                className="px-2.5 sm:px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 cursor-pointer shrink-0"
               >
-                Xóa chữ cuối
+                Xóa chữ
               </button>
               <button
                 type="button"
                 onClick={handleScrambleReset}
                 disabled={selectedLetterIds.length === 0}
-                className="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 cursor-pointer"
+                className="px-2.5 sm:px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 cursor-pointer shrink-0"
               >
                 Làm lại
               </button>
@@ -954,7 +954,7 @@ export default function CramPage() {
                 type="button"
                 onClick={checkScrambleAnswer}
                 disabled={!isFull}
-                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-all disabled:opacity-40 cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-all disabled:opacity-40 cursor-pointer text-center"
               >
                 Kiểm tra
               </button>
@@ -1178,7 +1178,7 @@ export default function CramPage() {
       </div>
 
       {/* Thẻ nội dung chính */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+      <div className="p-4 sm:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
         {mode === 'meaning_type' && renderMeaningType()}
         {mode === 'quiz' && renderQuiz()}
         {mode === 'matching' && renderMatching()}

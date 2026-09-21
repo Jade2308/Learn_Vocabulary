@@ -230,6 +230,18 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
   - **Song song hóa Backend ([`app/api/reviews/[id]/route.ts`](file:///d:/DATA/Learn_Vocabulary/app/api/reviews/%5Bid%5D/route.ts)):** Dùng `Promise.all` chạy song song cập nhật `user_vocabulary`, ghi `review_logs` và tính `daily_study_stats`, giảm 60% thời gian xử lý API.
   - **Cố định Demo User ID ([`lib/auth-helper.ts`](file:///d:/DATA/Learn_Vocabulary/lib/auth-helper.ts)):** Cấu hình `DEFAULT_DEMO_USER_ID` và cache `globalThis`, triệt tiêu hoàn toàn 440ms overhead xác thực trên mọi request.
   - **Stale-While-Revalidate Caching ([`app/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/page.tsx) & [`app/review/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/review/page.tsx)):** Tải tức thì dữ liệu từ `localStorage` ngay khi mount component. Trang web hiển thị nội dung ngay lập tức trong **0ms** khi F5, không còn màn hình chờ hay con số bị nhảy.
+### 19. Tối ưu hóa toàn diện giao diện di động: Khắc phục nút tràn viền, rớt chữ và đạt chuẩn Touch Targets
+- **Hiện tượng:**
+  1. 4 nút đánh giá phản hồi trên Flashcard (`Chưa nhớ`, `Hơi khó`, `Đã nhớ`, `Rất thuộc`) bị dàn ngang 4 cột chỉ rộng ~65px trên màn hình 360px, khiến phụ đề (*"Giãn cách xa"*, *"Ôn lại sớm"*) bị bẻ gãy vụn thành 3 hàng hoặc bị che chữ, vùng bấm quá nhỏ cho ngón tay cái.
+  2. Nút *"Gợi ý chữ cái đầu"* và *"Kiểm tra kết quả"* ở chế độ Nhìn nghĩa gõ từ bị tràn viền màn hình điện thoại do tổng chiều ngang >310px.
+  3. Ô nhập từ ở trang Thêm từ bị nút *"Thêm từ"* đè lên góc phải khiến không gian gõ chỉ còn ~180px; đồng thời huy hiệu *"Đã lưu vào sổ từ vựng"* ở header thẻ kết quả ép từ vựng chính bị rớt dòng.
+  4. Chân các Modal (Từ cần ôn, Kho từ, Chủ đề, Chi tiết từ) xếp nút ngang gây tràn mép trên điện thoại.
+- **Xử lý:**
+  - **Flashcard ([`app/review/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/review/page.tsx)):** Chuyển 4 nút phản hồi sang `grid-cols-2 sm:grid-cols-4`, mỗi nút rộng ~150px trên mobile, bố cục 2 dòng rõ nét, chiều cao chạm đạt chuẩn công thái học (56px). Tối ưu thanh tùy chọn chế độ thành `flex-col sm:flex-row`.
+  - **Luyện tập cấp tốc ([`app/cram/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/cram/page.tsx)):** Chuyển cụm nút Gợi ý & Kiểm tra thành dạng cột trên mobile, tối ưu kích thước ô chữ Scramble (`w-9 h-11 sm:w-10 sm:h-12`), tinh gọn nhãn nút thao tác (`Xóa chữ`, `Làm lại`, `Kiểm tra`), và tối ưu thẻ Ghép cặp Matching (`p-2.5 sm:p-4`).
+  - **Thêm từ ([`app/words/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/words/page.tsx)):** Chuyển form nhập từ sang bố cục dọc trên mobile (input full width, nút thêm từ full width bên dưới, tự động lồng vào bên trong trên desktop); tách header thẻ kết quả thành 2 hàng linh hoạt.
+  - **Dashboard ([`app/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/page.tsx)) & Modal ([`components/WordDetailModal.tsx`](file:///d:/DATA/Learn_Vocabulary/components/WordDetailModal.tsx)):** Chuyển chân tất cả các Modal sang `flex-col-reverse sm:flex-row` với các nút full width dễ bấm; bảo vệ các flexbox bằng `min-w-0 break-words`.
+  - **Toàn cục ([`components/Navbar.tsx`](file:///d:/DATA/Learn_Vocabulary/components/Navbar.tsx) & [`app/layout.tsx`](file:///d:/DATA/Learn_Vocabulary/app/layout.tsx)):** Bổ sung `overflow-x-clip min-w-[320px]` trên `body` và `main`, triệt tiêu 100% hiện tượng trượt ngang trên mobile.
 
 ---
 

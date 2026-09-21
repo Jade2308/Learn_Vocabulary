@@ -64,20 +64,20 @@ export default function WordsPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="relative flex items-center">
+      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2.5 sm:gap-0 sm:relative sm:items-center">
         <input
           type="text"
           value={inputWord}
           onChange={(e) => setInputWord(e.target.value)}
           placeholder="Nhập từ tiếng Anh (ví dụ: resilient, comprehensive, allocate)..."
-          className="w-full pl-4 pr-32 py-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base"
+          className="w-full px-4 sm:pl-4 sm:pr-32 py-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base"
           disabled={loading}
           autoFocus
         />
         <button
           type="submit"
           disabled={loading || !inputWord.trim()}
-          className="absolute right-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          className="w-full sm:w-auto sm:absolute sm:right-2 py-3 sm:py-2 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
         >
           {loading ? (
             <>
@@ -100,17 +100,17 @@ export default function WordsPage() {
       )}
 
       {addedWord && (
-        <div className="p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-emerald-100 dark:border-emerald-950/60 shadow-lg space-y-6">
-          <div className="flex items-start justify-between border-b border-zinc-100 dark:border-zinc-800 pb-4 gap-4">
-            <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h2 className="text-3xl font-extrabold capitalize text-zinc-900 dark:text-white">
+        <div className="p-4 sm:p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-emerald-100 dark:border-emerald-950/60 shadow-lg space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between border-b border-zinc-100 dark:border-zinc-800 pb-4 gap-3 sm:gap-4">
+            <div className="space-y-1.5 flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                <h2 className="text-2xl sm:text-3xl font-extrabold capitalize text-zinc-900 dark:text-white break-words">
                   {addedWord.headword}
                 </h2>
                 <button
                   type="button"
                   onClick={() => playAudio(addedWord.headword, addedWord.audio_url)}
-                  className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 hover:bg-emerald-200 transition-colors cursor-pointer"
+                  className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 hover:bg-emerald-200 transition-colors cursor-pointer shrink-0"
                   title="Phát âm"
                 >
                   <Volume2 className="w-5 h-5" />
@@ -138,7 +138,7 @@ export default function WordsPage() {
                 <p className="text-zinc-500 font-mono text-sm">{addedWord.ipa}</p>
               )}
             </div>
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shrink-0">
+            <span className="inline-flex self-start items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shrink-0">
               <CheckCircle className="w-3.5 h-3.5" />
               Đã lưu vào sổ từ vựng
             </span>
@@ -171,7 +171,7 @@ export default function WordsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {addedWord.word_family.map((wf, idx) => (
                   <div key={idx} className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-sm flex items-center justify-between gap-2">
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0 break-words">
                       <span className="font-semibold text-zinc-900 dark:text-zinc-100">{wf.word}</span>{' '}
                       <span className="text-xs text-zinc-500 italic">({wf.part_of_speech})</span>: {wf.meaning_vi}
                     </div>
@@ -241,7 +241,7 @@ export default function WordsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {collocations.map((col, idx) => (
                   <div key={idx} className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-sm flex items-start justify-between gap-2">
-                    <div className="space-y-0.5 flex-1">
+                    <div className="space-y-0.5 flex-1 min-w-0 break-words">
                       <div className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                         <span>{col.pattern}</span>
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 font-medium">Cụm từ</span>

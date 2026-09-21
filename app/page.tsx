@@ -168,17 +168,17 @@ export default function DashboardPage() {
             <p className="text-emerald-100 text-sm sm:text-base leading-relaxed max-w-md">
               Hệ thống tự động nhắc nhở thời điểm vàng để ôn tập giúp từ vựng ghi sâu vào trí nhớ dài hạn.
             </p>
-            <div className="pt-2 flex flex-wrap items-center gap-3">
+            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
               <Link
                 href="/review"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 font-bold text-sm transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 sm:py-2.5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 font-bold text-sm transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer w-full sm:w-auto text-center"
               >
                 <Layers className="w-4 h-4 text-emerald-600" />
                 <span>Ôn tập ngay ({dueCards.length})</span>
               </Link>
               <Link
                 href="/words"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-800/40 hover:bg-emerald-800/60 border border-white/25 text-white font-medium text-sm transition-all hover:-translate-y-0.5 backdrop-blur-xs cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 sm:py-2.5 rounded-xl bg-emerald-800/40 hover:bg-emerald-800/60 border border-white/25 text-white font-medium text-sm transition-all hover:-translate-y-0.5 backdrop-blur-xs cursor-pointer w-full sm:w-auto text-center"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>Thêm từ mới</span>
@@ -450,10 +450,10 @@ export default function DashboardPage() {
                     <div
                       key={item.id}
                       onClick={() => handleOpenWordDetail(idx, dueCards)}
-                      className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 hover:border-amber-400 dark:hover:border-amber-600 hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between gap-4 cursor-pointer group"
+                      className="p-3.5 sm:p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 hover:border-amber-400 dark:hover:border-amber-600 hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between gap-3 sm:gap-4 cursor-pointer group"
                       title="Bấm để xem chi tiết đầy đủ của từ"
                     >
-                      <div className="space-y-1 flex-1">
+                      <div className="space-y-1 flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-bold text-base text-zinc-900 dark:text-zinc-100 capitalize group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
                             {currentWord?.headword}
@@ -521,18 +521,18 @@ export default function DashboardPage() {
             </div>
 
             {/* Footer Modal */}
-            <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex items-center justify-end gap-3">
+            <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3">
               <button
                 type="button"
                 onClick={() => setActiveModal(null)}
-                className="px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-medium text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-medium text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-center w-full sm:w-auto"
               >
                 Đóng
               </button>
               {dueCards.length > 0 ? (
                 <Link
                   href="/review"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors shadow-sm cursor-pointer"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors shadow-sm cursor-pointer w-full sm:w-auto text-center"
                 >
                   <Layers className="w-4 h-4" />
                   <span>Bắt đầu ôn tập ngay ({dueCards.length})</span>
@@ -540,7 +540,7 @@ export default function DashboardPage() {
               ) : (
                 <Link
                   href="/words"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors shadow-sm cursor-pointer"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors shadow-sm cursor-pointer w-full sm:w-auto text-center"
                 >
                   <PlusCircle className="w-4 h-4" />
                   <span>Thêm từ mới</span>
@@ -641,7 +641,7 @@ export default function DashboardPage() {
                       title="Bấm để xem chi tiết đầy đủ của từ"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-bold text-lg text-zinc-900 dark:text-zinc-100 capitalize group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
                               {currentWord?.headword}
@@ -741,21 +741,21 @@ export default function DashboardPage() {
             </div>
 
             {/* Footer Modal */}
-            <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex items-center justify-between">
-              <span className="text-xs text-zinc-500">
+            <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <span className="text-xs text-zinc-500 text-center sm:text-left">
                 Hiển thị {filteredWords.length} / {totalWordsCount} từ
               </span>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => setActiveModal(null)}
-                  className="px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-medium text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                  className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-medium text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-center"
                 >
                   Đóng
                 </button>
                 <Link
                   href="/words"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors shadow-sm cursor-pointer"
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors shadow-sm cursor-pointer text-center"
                 >
                   <PlusCircle className="w-4 h-4" />
                   <span>Thêm từ mới</span>
@@ -845,17 +845,17 @@ export default function DashboardPage() {
             </div>
 
             {/* Footer Modal */}
-            <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex items-center justify-end gap-3">
+            <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3">
               <button
                 type="button"
                 onClick={() => setActiveModal(null)}
-                className="px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-medium text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-medium text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-center w-full sm:w-auto"
               >
                 Đóng
               </button>
               <Link
                 href="/cram"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm transition-colors shadow-sm cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm transition-colors shadow-sm cursor-pointer text-center w-full sm:w-auto"
               >
                 <Zap className="w-4 h-4" />
                 <span>Luyện tập tất cả</span>
