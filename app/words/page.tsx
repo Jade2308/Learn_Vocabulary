@@ -9,6 +9,7 @@ import { extractWordMetadata, getCefrBadgeStyle } from '@/lib/vocab-helper';
 export default function WordsPage() {
   const [inputWord, setInputWord] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [addedWord, setAddedWord] = useState<Word | null>(null);
 
@@ -17,14 +18,23 @@ export default function WordsPage() {
     if (!inputWord.trim()) return;
 
     setLoading(true);
+    setLoadingStep(0);
     setError(null);
     setAddedWord(null);
+
+    // Cập nhật trạng thái tiến trình theo thời gian thực để người dùng nắm rõ quá trình xử lý
+    const timer1 = setTimeout(() => setLoadingStep(1), 3000);
+    const timer2 = setTimeout(() => setLoadingStep(2), 7000);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 40000); // Timeout client 40s bảo vệ người dùng
 
     try {
       const res = await fetch('/api/words', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ headword: inputWord }),
+        signal: controller.signal,
       });
 
       const data = await res.json();
@@ -35,10 +45,18 @@ export default function WordsPage() {
       setAddedWord(data);
       setInputWord('');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Có lỗi xảy ra';
-      setError(msg);
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Kết nối mạng tới dịch vụ AI bị gián đoạn. Bạn vui lòng bấm thử lại nhé!');
+      } else {
+        const msg = err instanceof Error ? err.message : 'Có lỗi xảy ra';
+        setError(msg);
+      }
     } finally {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timeoutId);
       setLoading(false);
+      setLoadingStep(0);
     }
   };
 
@@ -82,7 +100,11 @@ export default function WordsPage() {
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Đang xử lý...</span>
+              <span>
+                {loadingStep === 0 && 'Đang tra cứu...'}
+                {loadingStep === 1 && 'Đang xử lý...'}
+                {loadingStep >= 2 && 'Đang dự phòng...'}
+              </span>
             </>
           ) : (
             <>
@@ -92,6 +114,17 @@ export default function WordsPage() {
           )}
         </button>
       </form>
+
+      {loading && (
+        <div className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-medium animate-pulse">
+          <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+          <span>
+            {loadingStep === 0 && 'Đang gửi yêu cầu và phân tích cấu trúc từ vựng...'}
+            {loadingStep === 1 && 'Đang tổng hợp phiên âm, ví dụ song ngữ & họ từ liên quan...'}
+            {loadingStep >= 2 && 'Đang kết nối mô hình AI dự phòng tốc độ cao...'}
+          </span>
+        </div>
+      )}
 
       {error && (
         <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-sm">

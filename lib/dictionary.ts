@@ -18,6 +18,7 @@ export async function fetchDictionaryData(word: string): Promise<DictionaryResul
     const encoded = encodeURIComponent(word.trim().toLowerCase());
     const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encoded}`, {
       next: { revalidate: 86400 },
+      signal: AbortSignal.timeout(1200),
     });
 
     if (!response.ok) {

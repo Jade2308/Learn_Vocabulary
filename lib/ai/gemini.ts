@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 import { GeminiEnrichmentResponse } from '@/types/db';
 
 const apiKey = process.env.GEMINI_API_KEY || '';
@@ -24,16 +24,13 @@ const ALLOWED_TOPICS = [
  * Mỗi mô hình có hạn ngạch (RPM/RPD) riêng biệt tại Google AI Studio.
  */
 const CANDIDATE_MODELS = [
-  'gemini-3.6-flash',          // Ưu tiên 1: Thông minh nhất, ngữ nghĩa sâu sắc, họ từ & ví dụ phong phú
-  'gemini-3.5-flash-lite',     // Ưu tiên 2: Tốc độ siêu tốc (~1s), nhẹ, quota riêng biệt
-  'gemini-flash-lite-latest',  // Ưu tiên 3: Phiên bản Flash-Lite mới nhất của Google
-  'gemini-3.1-flash-lite',     // Ưu tiên 4: Dòng Flash-Lite ổn định cao, dự phòng dồi dào
-  'gemini-3.5-flash',          // Ưu tiên 5: Phiên bản Flash tiêu chuẩn
-  'gemini-3.7-flash',          // Ưu tiên 6: Mô hình Flash cao cấp
-  'gemini-3.8-flash',          // Ưu tiên 7: Mô hình thế hệ kế tiếp
+  'gemini-3.5-flash',          // Ưu tiên 1: Rất ổn định, tốc độ xử lý nhanh, hỗ trợ schema hoàn chỉnh
+  'gemini-3-flash-preview',    // Ưu tiên 2: Tốc độ phản hồi cực nhanh (~1-2s), tài nguyên dồi dào
+  'gemini-3.6-flash',          // Ưu tiên 3: Ngữ nghĩa học thuật sâu sắc, từ vựng & ví dụ phong phú
+  'gemini-3.7-flash',          // Ưu tiên 4: Dòng Flash nâng cao
+  'gemini-3.8-flash',          // Ưu tiên 5: Mô hình thế hệ mới
+  'gemini-3.1-flash-lite',     // Ưu tiên 6: Dòng Flash-Lite nhẹ, dự phòng đáng tin cậy
 ];
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function enrichWordWithGemini(headword: string): Promise<GeminiEnrichmentResponse> {
   if (!apiKey) {
@@ -145,46 +142,32 @@ Yêu cầu chi tiết:
   let lastError: unknown = null;
 
   for (const model of CANDIDATE_MODELS) {
-    // Thử tối đa 2 lần cho mỗi model nếu gặp lỗi quá tải tạm thời (503 / high demand)
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        const response = await ai.models.generateContent({
-          model,
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: schema,
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: schema,
+          thinkingConfig: {
+            thinkingLevel: ThinkingLevel.MINIMAL,
           },
-        });
+          abortSignal: AbortSignal.timeout(12000), // Tối đa 12s cho mỗi model
+        },
+      });
 
-        const responseText = response.text;
-        if (!responseText) {
-          throw new Error('Gemini API returned an empty response');
-        }
-
-        return JSON.parse(responseText) as GeminiEnrichmentResponse;
-      } catch (err: unknown) {
-        lastError = err;
-        const errString = err instanceof Error ? err.message : String(err);
-        const isQuotaExceeded = errString.includes('429') || errString.includes('RESOURCE_EXHAUSTED') || errString.includes('quota') || errString.includes('rate limit');
-        const isTransient = errString.includes('503') || errString.includes('high demand') || errString.includes('UNAVAILABLE');
-
-        // Nếu hết quota / giới hạn gọi: chuyển ngay sang model kế tiếp không cần chờ
-        if (isQuotaExceeded) {
-          console.warn(`[AI Failover] Model ${model} đã hết hạn ngạch (429 Rate Limit/Quota). Tự động chuyển ngay sang model kế tiếp...`);
-          break;
-        }
-
-        // Nếu quá tải tạm thời ở lần đầu: chờ 500ms thử lại
-        if (isTransient && attempt === 1) {
-          await sleep(500);
-          continue;
-        }
-
-        // Lỗi khác hoặc đã thử lại không thành: tự động chuyển sang model dự phòng kế tiếp
-        console.warn(`[AI Failover] Model ${model} tạm dừng (${errString.slice(0, 100)}...). Tự động chuyển sang model dự phòng kế tiếp...`);
-        break;
+      const responseText = response.text;
+      if (!responseText) {
+        throw new Error('Gemini API returned an empty response');
       }
+
+      return JSON.parse(responseText) as GeminiEnrichmentResponse;
+    } catch (err: unknown) {
+      lastError = err;
+      const errString = err instanceof Error ? err.message : String(err);
+      console.warn(`[AI Failover] Model ${model} gặp sự cố (${errString.slice(0, 100)}...). Chuyển ngay lập tức sang model kế tiếp...`);
+      // Lập tức failover sang model kế tiếp trong candidate list mà không lặp lại vô ích
+      continue;
     }
   }
 

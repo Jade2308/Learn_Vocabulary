@@ -243,6 +243,23 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
   - **Dashboard ([`app/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/page.tsx)) & Modal ([`components/WordDetailModal.tsx`](file:///d:/DATA/Learn_Vocabulary/components/WordDetailModal.tsx)):** Chuyển chân tất cả các Modal sang `flex-col-reverse sm:flex-row` với các nút full width dễ bấm; bảo vệ các flexbox bằng `min-w-0 break-words`.
   - **Toàn cục ([`components/Navbar.tsx`](file:///d:/DATA/Learn_Vocabulary/components/Navbar.tsx) & [`app/layout.tsx`](file:///d:/DATA/Learn_Vocabulary/app/layout.tsx)):** Bổ sung `overflow-x-clip min-w-[320px]` trên `body` và `main`, triệt tiêu 100% hiện tượng trượt ngang trên mobile.
 
+### 20. Khắc phục triệt để hiện tượng tra từ vựng bị treo load liên tục đến vài phút
+- **Hiện tượng:** Khi người dùng nhập từ mới để tra cứu trên trang Thêm từ (`/words`), hệ thống xoay spinner *"Đang xử lý..."* liên tục vài phút vẫn không ra kết quả.
+- **Nguyên nhân gốc rễ (3 yếu tố cộng dồn):**
+  1. **Free Dictionary API treo socket TCP vô hạn:** [`lib/dictionary.ts`](file:///d:/DATA/Learn_Vocabulary/lib/dictionary.ts) gọi `https://api.dictionaryapi.dev/api/v2/entries/en/...` mà không có cấu hình timeout. Máy chủ này thường xuyên bị chặn/blackhole kết nối tại mạng Việt Nam, khiến tiến trình `fetch` phía server bị giam giữ chờ đợi 2–5 phút trước khi socket bị hủy.
+  2. **Vòng lặp thử lại (Retry) tích lũy thời gian của Gemini AI:** [`lib/ai/gemini.ts`](file:///d:/DATA/Learn_Vocabulary/lib/ai/gemini.ts) có vòng lặp thử lại 2 lần cho mỗi model và không có `abortSignal`. Khi Google AI quá tải tạm thời (503 High Demand), mỗi model mất 25–35s để phản hồi, việc thử lại 2 lần nhân với danh sách candidate models khiến tổng thời gian chờ bị đẩy lên vài phút.
+  3. **Thinking Mode mặc định (`high`) của Gemini 3:** Tự động sinh hàng trăm token suy luận ẩn trước khi xuất JSON, làm chậm thời gian phản hồi thêm 20–30s không cần thiết cho tác vụ tra từ điển.
+- **Xử lý triệt để:**
+  - **Giới hạn cứng Timeout 1.2s cho Free Dictionary API ([`lib/dictionary.ts`](file:///d:/DATA/Learn_Vocabulary/lib/dictionary.ts)):** Bổ sung `signal: AbortSignal.timeout(1200)`. Nếu API ngoài không phản hồi trong 1.2s, lập tức bắt lỗi trong 0ms và nhường quyền trích xuất IPA chuẩn xác cho Gemini AI.
+  - **Tối ưu hóa Thinking & Timeout cho Gemini ([`lib/ai/gemini.ts`](file:///d:/DATA/Learn_Vocabulary/lib/ai/gemini.ts)):**
+    - Cấu hình `thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL }` để loại bỏ suy luận ẩn, xuất JSON tức thì.
+    - Cấu hình `abortSignal: AbortSignal.timeout(12000)` giới hạn tối đa 12s cho mỗi model.
+    - Cơ chế **Fast Failover**: Khi gặp lỗi 503, 429 hoặc timeout, chuyển ngay lập tức sang model kế tiếp trong 0ms, không lặp lại vô ích trên cùng một model đang bị nghẽn.
+    - Tinh chỉnh thứ tự `CANDIDATE_MODELS`: ưu tiên các model ổn định, phản hồi nhanh (`gemini-3.5-flash`, `gemini-3-flash-preview`, `gemini-3.6-flash`,...).
+  - **Nâng cấp UX Tiến trình & Bảo vệ Client ([`app/words/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/words/page.tsx)):**
+    - Bổ sung thông điệp tiến trình động: *0–3s: "Đang phân tích cấu trúc từ vựng..."*, *3–7s: "Đang tổng hợp phiên âm, ví dụ song ngữ & họ từ..."*, *>7s: "Đang kết nối mô hình AI dự phòng tốc độ cao..."*.
+    - Bổ sung `AbortController` 40s ở client fetch để tự động giải phóng giao diện và báo lỗi rõ ràng nếu kết nối mạng của thiết bị gặp sự cố.
+
 ---
 
 ## 5. Các bước tiếp theo (Next Steps / Roadmap)
