@@ -19,19 +19,19 @@ const ALLOWED_TOPICS = [
 
 /**
  * Cấu hình model theo chiến lược 2 giai đoạn:
- * - Giai đoạn 1 (Fast API): gemini-3.5-flash-lite (hiển thị tức thì ~1.3s)
- * - Giai đoạn 2 (Full API): gemini-3.5-flash (ngữ pháp chuẩn, collocations, ví dụ)
+ * - Giai đoạn 1 (Fast API): gemini-3.5-flash-lite (hiển thị tức thì ~1.1s)
+ * - Giai đoạn 2 (Full API): gemini-3.8-flash (nhanh ~2.6s, rẻ hơn 50%, thông minh nhất)
  */
 const FAST_MODELS = [
-  'gemini-3.5-flash-lite',  // Ưu tiên 1: Tối ưu dịch nghĩa, IPA, CEFR siêu nhanh (~1.3s)
-  'gemini-3.5-flash',       // Dự phòng 1: Nhanh và ổn định
-  'gemini-3.8-flash',       // Dự phòng 2: Model mới nhất
+  'gemini-3.5-flash-lite',  // Ưu tiên 1: Tối ưu dịch nghĩa, IPA, CEFR siêu nhanh (~1.1s)
+  'gemini-3.8-flash',       // Dự phòng 1: Model mới nhất, rất nhanh (~2.6s)
+  'gemini-3.5-flash',       // Dự phòng 2
 ];
 
 const FULL_MODELS = [
-  'gemini-3.5-flash',       // Ưu tiên 1: Chuẩn mực ngữ pháp, collocations, ví dụ
-  'gemini-3.5-flash-lite',  // Dự phòng 1: Nhanh (~2.7s)
-  'gemini-3.8-flash',       // Dự phòng 2: Model mới nhất
+  'gemini-3.8-flash',       // Ưu tiên 1: Mới nhất, nhanh (~2.6s), rẻ hơn 50% ($0.75/$3.75)
+  'gemini-3.5-flash-lite',  // Dự phòng 1: Siêu nhanh (~2.7s)
+  'gemini-3.5-flash',       // Dự phòng 2
 ];
 
 // ─────────────────────────────────────────────
