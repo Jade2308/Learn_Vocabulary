@@ -47,7 +47,7 @@ export default function WordsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ headword: searchWord }),
-        signal: AbortSignal.timeout(12000),
+        signal: AbortSignal.timeout(25000), // 3 model × 7s mỗi cái + buffer
       });
 
       if (!fastRes.ok) {
