@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 import { GeminiEnrichmentResponse } from '@/types/db';
 
 const apiKey = process.env.GEMINI_API_KEY || '';
@@ -18,18 +18,17 @@ const ALLOWED_TOPICS = [
 ];
 
 /**
- * Danh sách các mô hình Gemini theo thứ tự ưu tiên tối ưu nhất.
- * Khi một mô hình hết lượt gọi (Rate Limit / Quota 429), quá tải (503), hoặc bận,
- * hệ thống sẽ tự động chuyển ngay sang mô hình kế tiếp mà KHÔNG báo lỗi ra giao diện.
- * Mỗi mô hình có hạn ngạch (RPM/RPD) riêng biệt tại Google AI Studio.
+ * Danh sách các mô hình Gemini theo thứ tự ưu tiên tốc độ.
+ * Ưu tiên model nhẹ/nhanh nhất trước để giảm độ trễ.
+ * Khi một mô hình hết lượt gọi (429) hoặc lỗi, tự động failover sang model kế tiếp.
  */
 const CANDIDATE_MODELS = [
-  'gemini-3.5-flash',          // Ưu tiên 1: Rất ổn định, tốc độ xử lý nhanh, hỗ trợ schema hoàn chỉnh
-  'gemini-3-flash-preview',    // Ưu tiên 2: Tốc độ phản hồi cực nhanh (~1-2s), tài nguyên dồi dào
-  'gemini-3.6-flash',          // Ưu tiên 3: Ngữ nghĩa học thuật sâu sắc, từ vựng & ví dụ phong phú
-  'gemini-3.7-flash',          // Ưu tiên 4: Dòng Flash nâng cao
-  'gemini-3.8-flash',          // Ưu tiên 5: Mô hình thế hệ mới
-  'gemini-3.1-flash-lite',     // Ưu tiên 6: Dòng Flash-Lite nhẹ, dự phòng đáng tin cậy
+  'gemini-3.5-flash-lite',     // Ưu tiên 1: Nhanh nhất, tiêu tốn ít tài nguyên nhất
+  'gemini-3.5-flash',          // Ưu tiên 2: Ổn định, tốc độ cao
+  'gemini-3-flash-preview',    // Ưu tiên 3: Tốc độ tốt, hạn ngạch riêng
+  'gemini-3.6-flash',          // Ưu tiên 4: Dự phòng
+  'gemini-3.7-flash',          // Ưu tiên 5: Dự phòng nâng cao
+  'gemini-3.8-flash',          // Ưu tiên 6: Mạnh nhất, dùng khi các model trên đều bận
 ];
 
 export async function enrichWordWithGemini(headword: string): Promise<GeminiEnrichmentResponse> {
@@ -150,9 +149,9 @@ Yêu cầu chi tiết:
           responseMimeType: 'application/json',
           responseSchema: schema,
           thinkingConfig: {
-            thinkingLevel: ThinkingLevel.MINIMAL,
+            thinkingBudget: 0, // Tắt thinking hoàn toàn – không cần thiết cho tra từ
           },
-          abortSignal: AbortSignal.timeout(12000), // Tối đa 12s cho mỗi model
+          abortSignal: AbortSignal.timeout(8000), // Tối đa 8s cho mỗi model
         },
       });
 

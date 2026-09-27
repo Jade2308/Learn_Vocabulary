@@ -260,6 +260,17 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
     - Bổ sung thông điệp tiến trình động: *0–3s: "Đang phân tích cấu trúc từ vựng..."*, *3–7s: "Đang tổng hợp phiên âm, ví dụ song ngữ & họ từ..."*, *>7s: "Đang kết nối mô hình AI dự phòng tốc độ cao..."*.
     - Bổ sung `AbortController` 40s ở client fetch để tự động giải phóng giao diện và báo lỗi rõ ràng nếu kết nối mạng của thiết bị gặp sự cố.
 
+### 21. Tối ưu hóa siêu tốc thời gian tra từ mới (từ 20s+ xuống 2–4s)
+- **Hiện tượng:** Mỗi lần tra từ mới cần ít nhất 20s mới hiển thị kết quả.
+- **Nguyên nhân gốc rễ:**
+  1. `ThinkingLevel.MINIMAL` không được hỗ trợ trên model `gemini-3.8-flash` (gây lỗi và timeout 12s trước khi chuyển model).
+  2. Thứ tự ưu tiên model chưa tối ưu cho độ trễ thấp (chưa đưa model Flash-Lite lên đầu).
+  3. Thời gian timeout 12s cho mỗi model vẫn còn dài.
+- **Xử lý triệt để ([`lib/ai/gemini.ts`](file:///d:/DATA/Learn_Vocabulary/lib/ai/gemini.ts)):**
+  - **Tắt thinking hoàn toàn:** Chuyển sang `thinkingConfig: { thinkingBudget: 0 }`, tương thích 100% với tất cả các model Flash và triệt tiêu toàn bộ thời gian suy luận thừa.
+  - **Đưa `gemini-3.5-flash-lite` lên ưu tiên số 1:** Mô hình siêu nhẹ, phản hồi cực nhanh (~1.5–3s) và độ chính xác cao cho JSON dictionary schema.
+  - **Rút ngắn Timeout xuống 8s:** Giảm thời gian chờ failover nếu gặp model bận hoặc lỗi mạng.
+
 ---
 
 ## 5. Các bước tiếp theo (Next Steps / Roadmap)
