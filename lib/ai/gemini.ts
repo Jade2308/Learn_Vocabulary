@@ -177,14 +177,12 @@ export async function enrichWordWithGemini(headword: string): Promise<GeminiEnri
 2. ipa: phiên âm IPA chuẩn (ví dụ /ˈwɜːrd/)
 3. cefr_level: cấp độ A1/A2/B1/B2/C1/C2
 4. meaning_vi: nghĩa tiếng Việt súc tích nhất
-5. word_etymology: nguồn gốc từ Latin/Greek ngắn gọn (1-2 câu)
-6. collocations: 2-3 cụm từ thông dụng [{phrase, meaning_vi}], [] nếu không có
-7. synonyms: 2-3 từ đồng nghĩa [], [] nếu không có
-8. antonyms: 1-2 từ trái nghĩa [], [] nếu không có
-9. word_family: các dạng từ [{part_of_speech, word, meaning_vi}], [] nếu không có
-10. prepositions: giới từ đi kèm [{pattern, explanation, example}], [] nếu không có
-11. examples: 2 câu ví dụ [{en, vi}]
-12. topics: 1-3 chủ đề từ [${ALLOWED_TOPICS.map((t) => `"${t}"`).join(', ')}]`;
+5. collocations: 2-3 cụm từ thông dụng [{phrase, meaning_vi}], [] nếu không có
+6. synonyms: 2-3 từ đồng nghĩa [], [] nếu không có
+7. word_family: các dạng từ [{part_of_speech, word, meaning_vi}], [] nếu không có
+8. prepositions: giới từ đi kèm [{pattern, explanation, example}], [] nếu không có
+9. examples: đúng 1 câu ví dụ tiêu biểu, súc tích [{en, vi}]
+10. topics: 1-3 chủ đề từ [${ALLOWED_TOPICS.map((t) => `"${t}"`).join(', ')}]`;
 
   const schema = {
     type: Type.OBJECT,
@@ -194,7 +192,6 @@ export async function enrichWordWithGemini(headword: string): Promise<GeminiEnri
       ipa: { type: Type.STRING },
       cefr_level: { type: Type.STRING },
       meaning_vi: { type: Type.STRING },
-      word_etymology: { type: Type.STRING },
       collocations: {
         type: Type.ARRAY,
         items: {
@@ -207,7 +204,6 @@ export async function enrichWordWithGemini(headword: string): Promise<GeminiEnri
         },
       },
       synonyms: { type: Type.ARRAY, items: { type: Type.STRING } },
-      antonyms: { type: Type.ARRAY, items: { type: Type.STRING } },
       word_family: {
         type: Type.ARRAY,
         items: {
@@ -247,8 +243,7 @@ export async function enrichWordWithGemini(headword: string): Promise<GeminiEnri
     },
     required: [
       'headword', 'part_of_speech', 'ipa', 'cefr_level', 'meaning_vi',
-      'word_etymology', 'collocations', 'synonyms', 'antonyms',
-      'word_family', 'prepositions', 'examples', 'topics',
+      'collocations', 'synonyms', 'word_family', 'prepositions', 'examples', 'topics',
     ],
   };
 

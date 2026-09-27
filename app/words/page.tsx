@@ -409,7 +409,7 @@ export default function WordsPage() {
 
               {/* Từ đồng nghĩa & Trái nghĩa */}
               {(synonyms.length > 0 || antonyms.length > 0) && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className={`grid gap-3 ${synonyms.length > 0 && antonyms.length > 0 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
                   {synonyms.length > 0 && (
                     <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 space-y-2">
                       <h4 className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
