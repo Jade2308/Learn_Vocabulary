@@ -18,22 +18,20 @@ const ALLOWED_TOPICS = [
 ];
 
 /**
- * Danh sách model ưu tiên tốc độ (nhẹ → nặng).
- * Fast API dùng top 3; Full API dùng toàn bộ làm fallback.
+ * Cấu hình model theo chiến lược 2 giai đoạn:
+ * - Giai đoạn 1 (Fast API): gemini-3.5-flash-lite (hiển thị tức thì 1s)
+ * - Giai đoạn 2 (Full API): gemini-2.5-flash (ngữ pháp chuẩn, siêu tiết kiệm chi phí)
  */
 const FAST_MODELS = [
-  'gemini-3.5-flash-lite',  // Nhanh nhất, đủ cho 4 trường cốt lõi
-  'gemini-3.5-flash',       // Dự phòng ổn định
-  'gemini-3-flash-preview', // Dự phòng thứ 3
+  'gemini-3.5-flash-lite',  // Ưu tiên 1: Tối ưu dịch nghĩa, IPA, CEFR siêu nhanh
+  'gemini-2.5-flash-lite',  // Dự phòng 1: Siêu nhẹ, siêu rẻ
+  'gemini-2.5-flash',       // Dự phòng 2
 ];
 
 const FULL_MODELS = [
-  'gemini-3.5-flash-lite',
-  'gemini-3.5-flash',
-  'gemini-3-flash-preview',
-  'gemini-3.6-flash',
-  'gemini-3.7-flash',
-  'gemini-3.8-flash',
+  'gemini-2.5-flash',       // Ưu tiên 1: Chuẩn mực ngữ pháp, collocations, siêu rẻ ($0.30/$2.50)
+  'gemini-3.5-flash',       // Dự phòng 1: Chất lượng cao
+  'gemini-3.8-flash',       // Dự phòng cuối: Model thông minh nhất khi các model trước bận
 ];
 
 // ─────────────────────────────────────────────
