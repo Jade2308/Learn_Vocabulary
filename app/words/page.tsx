@@ -114,10 +114,14 @@ export default function WordsPage() {
       setLoadingFast(false);
       setLoadingFull(false);
       const msg = err instanceof Error ? err.message : 'Có lỗi xảy ra';
-      if (msg.includes('abort') || msg.toLowerCase().includes('timeout')) {
-        setError('Kết nối AI tạm thời chậm. Vui lòng thử lại!');
+      const msgLower = msg.toLowerCase();
+
+      if (msgLower.includes('rate_limit') || msgLower.includes('quota') || msgLower.includes('resource_exhausted') || msgLower.includes('30 giây')) {
+        setError('⚠️ Đã đạt giới hạn API miễn phí trong phút này. Vui lòng đợi 30–60 giây rồi thử lại!');
+      } else if (msgLower.includes('timeout') || msgLower.includes('abort') || msgLower.includes('timed out') || msgLower.includes('chậm')) {
+        setError('🔄 AI đang phản hồi chậm. Hãy thử lại sau vài giây!');
       } else {
-        setError(msg);
+        setError(`❌ ${msg}`);
       }
     }
   };

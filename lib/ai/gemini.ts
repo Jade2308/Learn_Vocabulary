@@ -81,6 +81,7 @@ async function callModel(model: string, prompt: string, schema: object, timeoutM
 
 // ─────────────────────────────────────────────
 // Helper: chạy tuần tự qua danh sách model (failover)
+// Phân loại lỗi để frontend hiển thị thông báo chính xác
 // ─────────────────────────────────────────────
 async function runWithFailover(
   models: string[],
@@ -88,18 +89,34 @@ async function runWithFailover(
   schema: object,
   timeoutMs: number
 ): Promise<string> {
+  let rateLimitCount = 0;
+  let timeoutCount = 0;
   let lastError: unknown = null;
+
   for (const model of models) {
     try {
       return await callModel(model, prompt, schema, timeoutMs);
     } catch (err) {
       lastError = err;
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[AI Failover] ${model}: ${msg.slice(0, 80)}... → thử model tiếp theo`);
+      const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+      const isRateLimit = msg.includes('429') || msg.includes('resource_exhausted') || msg.includes('quota');
+      const isTimeout = msg.includes('timeout') || msg.includes('abort') || msg.includes('timed out');
+      if (isRateLimit) rateLimitCount++;
+      if (isTimeout) timeoutCount++;
+      console.warn(`[AI Failover] ${model}: ${isRateLimit ? '429 Rate Limit' : isTimeout ? 'Timeout' : 'Error'} → thử model tiếp theo`);
     }
   }
-  throw lastError ?? new Error('Tất cả model đều thất bại');
+
+  // Ném lỗi có message phân loại rõ để frontend xử lý đúng
+  if (rateLimitCount === models.length) {
+    throw new Error('RATE_LIMIT: Đã đạt giới hạn API miễn phí. Vui lòng thử lại sau 30 giây!');
+  }
+  if (timeoutCount > 0) {
+    throw new Error('TIMEOUT: AI đang bận, phản hồi quá chậm. Thử lại sau vài giây!');
+  }
+  throw lastError ?? new Error('ALL_FAILED: Không thể kết nối với dịch vụ AI.');
 }
+
 
 // ─────────────────────────────────────────────
 // Kiểu dữ liệu kết quả nhanh (4 trường cốt lõi)
