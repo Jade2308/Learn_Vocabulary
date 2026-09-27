@@ -19,19 +19,19 @@ const ALLOWED_TOPICS = [
 
 /**
  * Cấu hình model theo chiến lược 2 giai đoạn:
- * - Giai đoạn 1 (Fast API): gemini-3.5-flash-lite (hiển thị tức thì 1s)
- * - Giai đoạn 2 (Full API): gemini-2.5-flash (ngữ pháp chuẩn, siêu tiết kiệm chi phí)
+ * - Giai đoạn 1 (Fast API): gemini-3.5-flash-lite (hiển thị tức thì ~1.3s)
+ * - Giai đoạn 2 (Full API): gemini-3.5-flash (ngữ pháp chuẩn, collocations, ví dụ)
  */
 const FAST_MODELS = [
-  'gemini-3.5-flash-lite',  // Ưu tiên 1: Tối ưu dịch nghĩa, IPA, CEFR siêu nhanh
-  'gemini-2.5-flash-lite',  // Dự phòng 1: Siêu nhẹ, siêu rẻ
-  'gemini-2.5-flash',       // Dự phòng 2
+  'gemini-3.5-flash-lite',  // Ưu tiên 1: Tối ưu dịch nghĩa, IPA, CEFR siêu nhanh (~1.3s)
+  'gemini-3.5-flash',       // Dự phòng 1: Nhanh và ổn định
+  'gemini-3.8-flash',       // Dự phòng 2: Model mới nhất
 ];
 
 const FULL_MODELS = [
-  'gemini-2.5-flash',       // Ưu tiên 1: Chuẩn mực ngữ pháp, collocations, siêu rẻ ($0.30/$2.50)
-  'gemini-3.5-flash',       // Dự phòng 1: Chất lượng cao
-  'gemini-3.8-flash',       // Dự phòng cuối: Model thông minh nhất khi các model trước bận
+  'gemini-3.5-flash',       // Ưu tiên 1: Chuẩn mực ngữ pháp, collocations, ví dụ
+  'gemini-3.5-flash-lite',  // Dự phòng 1: Nhanh (~2.7s)
+  'gemini-3.8-flash',       // Dự phòng 2: Model mới nhất
 ];
 
 // ─────────────────────────────────────────────
@@ -68,7 +68,6 @@ async function callModel(model: string, prompt: string, schema: object, timeoutM
     config: {
       responseMimeType: 'application/json',
       responseSchema: schema,
-      thinkingConfig: { thinkingBudget: 0 },
       abortSignal: AbortSignal.timeout(timeoutMs),
     },
   });
@@ -245,7 +244,7 @@ export async function enrichWordWithGemini(headword: string): Promise<GeminiEnri
     ],
   };
 
-  const text = await runWithFailover(FULL_MODELS, prompt, schema, 8000);
+  const text = await runWithFailover(FULL_MODELS, prompt, schema, 15000);
   const result = JSON.parse(text) as GeminiEnrichmentResponse;
 
   // Lưu vào cache
