@@ -293,6 +293,16 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
   | Từ đã có trong DB | ~300ms | ~300ms |
   | Tra lại từ vừa xong (server cache) | ~300ms | **~0ms** |
 
+### 23. Tinh gọn Schema & Prompt AI (Giảm ~40% tokens & tăng tốc sinh dữ liệu)
+- **Yêu cầu từ người dùng:**
+  - Cắt bỏ: `word_etymology` (nguồn gốc từ) và `antonyms` (từ trái nghĩa).
+  - Rút gọn: `examples` từ 2 câu xuống còn 1 câu ví dụ tiêu biểu, súc tích.
+  - Giữ nguyên: `topics`, `prepositions` và `collocations`.
+- **Thực hiện:**
+  - Cập nhật prompt & JSON Schema trong [`lib/ai/gemini.ts`](file:///d:/DATA/Learn_Vocabulary/lib/ai/gemini.ts).
+  - Tối ưu layout hiển thị `synonyms` trong [`app/words/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/words/page.tsx) tự động bung toàn bộ chiều rộng khi không còn `antonyms`.
+  - Giảm đáng kể lượng tokens output của AI, giảm rủi ro timeout hoặc quá tải.
+
 ---
 
 ## 5. Các bước tiếp theo (Next Steps / Roadmap)
