@@ -232,16 +232,14 @@ export default function WordsPage() {
                 <h2 className="text-2xl sm:text-3xl font-extrabold capitalize text-zinc-900 dark:text-white break-words">
                   {displayWord.headword}
                 </h2>
-                {displayWord.audio_url && (
-                  <button
-                    type="button"
-                    onClick={() => playAudio(displayWord.headword, displayWord.audio_url ?? undefined)}
-                    className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 hover:bg-emerald-200 transition-colors cursor-pointer shrink-0"
-                    title="Phát âm"
-                  >
-                    <Volume2 className="w-5 h-5" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => playAudio(displayWord.headword, displayWord.audio_url ?? undefined)}
+                  className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 hover:bg-emerald-200 transition-colors cursor-pointer shrink-0"
+                  title="Phát âm"
+                >
+                  <Volume2 className="w-5 h-5" />
+                </button>
 
                 {/* Badge Loại từ */}
                 {pos && (
