@@ -312,6 +312,10 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
   - **Dự phòng:** `gemini-3.5-flash-lite`, `gemini-3.8-flash` (timeout tăng lên 15s tránh abort oan).
 - **Lưu ý quan trọng:** Google đã ngắt hỗ trợ `gemini-2.5-flash` đối với các API key/project mới (báo lỗi 404 NOT_FOUND), do đó hệ thống chuyển hoàn toàn sang thế hệ 3.x (`3.5-flash-lite` và `3.5-flash`).
 
+### 25. Luôn hiển thị nút phát âm cho từ chính (Headword)
+- **Vấn đề:** Trước đây nút phát âm cạnh từ chính bị bọc bởi điều kiện `{displayWord.audio_url && ...}`. Nếu từ điển bên thứ ba chưa trả về audio MP3 kịp (hoặc ở Giai đoạn 1 khi chưa có link MP3), nút loa phát âm bị ẩn hoàn toàn dù họ từ (word family) vẫn có nút loa.
+- **Khắc phục:** Bỏ điều kiện `displayWord.audio_url &&`, luôn hiển thị nút loa cạnh từ chính vì hàm `playAudio()` trong [`lib/audio.ts`](file:///d:/DATA/Learn_Vocabulary/lib/audio.ts) đã có sẵn công nghệ **Web Speech API** phát âm chuẩn giọng bản xứ Anh-Mỹ tức thì (0ms latency).
+
 ---
 
 ## 5. Các bước tiếp theo (Next Steps / Roadmap)
