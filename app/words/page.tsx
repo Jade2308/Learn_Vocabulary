@@ -113,15 +113,17 @@ export default function WordsPage() {
     } catch (err: unknown) {
       setLoadingFast(false);
       setLoadingFull(false);
-      const msg = err instanceof Error ? err.message : 'Có lỗi xảy ra';
-      const msgLower = msg.toLowerCase();
+      const raw = err instanceof Error ? err.message : 'Có lỗi xảy ra';
 
-      if (msgLower.includes('rate_limit') || msgLower.includes('quota') || msgLower.includes('resource_exhausted') || msgLower.includes('30 giây')) {
+      if (raw.includes('SERVER_OVERLOAD') || raw.includes('503') || raw.includes('unavailable') || raw.includes('high demand')) {
+        setError('🔥 Máy chủ AI của Google đang quá tải. Đây là tình trạng tạm thời — vui lòng thử lại sau 10–20 giây!');
+      } else if (raw.includes('RATE_LIMIT') || raw.includes('429') || raw.includes('quota') || raw.includes('resource_exhausted')) {
         setError('⚠️ Đã đạt giới hạn API miễn phí trong phút này. Vui lòng đợi 30–60 giây rồi thử lại!');
-      } else if (msgLower.includes('timeout') || msgLower.includes('abort') || msgLower.includes('timed out') || msgLower.includes('chậm')) {
-        setError('🔄 AI đang phản hồi chậm. Hãy thử lại sau vài giây!');
+      } else if (raw.includes('TIMEOUT') || raw.includes('timed out')) {
+        setError('🔄 AI phản hồi chậm hơn bình thường. Hãy thử lại!');
       } else {
-        setError(`❌ ${msg}`);
+        // Không hiện raw JSON — chỉ hiện thông báo chung
+        setError('❌ Không thể tra từ vào lúc này. Vui lòng thử lại sau vài giây!');
       }
     }
   };

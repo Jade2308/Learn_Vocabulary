@@ -91,6 +91,7 @@ async function runWithFailover(
 ): Promise<string> {
   let rateLimitCount = 0;
   let timeoutCount = 0;
+  let serverOverloadCount = 0;
   let lastError: unknown = null;
 
   for (const model of models) {
@@ -100,21 +101,26 @@ async function runWithFailover(
       lastError = err;
       const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
       const isRateLimit = msg.includes('429') || msg.includes('resource_exhausted') || msg.includes('quota');
-      const isTimeout = msg.includes('timeout') || msg.includes('abort') || msg.includes('timed out');
+      const isTimeout = msg.includes('timed out') || (msg.includes('abort') && !msg.includes('unavailable'));
+      const isServerDown = msg.includes('503') || msg.includes('unavailable') || msg.includes('high demand');
       if (isRateLimit) rateLimitCount++;
-      if (isTimeout) timeoutCount++;
-      console.warn(`[AI Failover] ${model}: ${isRateLimit ? '429 Rate Limit' : isTimeout ? 'Timeout' : 'Error'} → thử model tiếp theo`);
+      else if (isTimeout) timeoutCount++;
+      else if (isServerDown) serverOverloadCount++;
+      console.warn(`[AI Failover] ${model}: ${isRateLimit ? '429 RateLimit' : isTimeout ? 'Timeout' : isServerDown ? '503 Overload' : 'Error'} → thử model tiếp theo`);
     }
   }
 
-  // Ném lỗi có message phân loại rõ để frontend xử lý đúng
+  // Ném lỗi phân loại rõ để frontend xử lý đúng
+  if (serverOverloadCount > 0) {
+    throw new Error('SERVER_OVERLOAD');
+  }
   if (rateLimitCount === models.length) {
-    throw new Error('RATE_LIMIT: Đã đạt giới hạn API miễn phí. Vui lòng thử lại sau 30 giây!');
+    throw new Error('RATE_LIMIT');
   }
   if (timeoutCount > 0) {
-    throw new Error('TIMEOUT: AI đang bận, phản hồi quá chậm. Thử lại sau vài giây!');
+    throw new Error('TIMEOUT');
   }
-  throw lastError ?? new Error('ALL_FAILED: Không thể kết nối với dịch vụ AI.');
+  throw new Error('ALL_FAILED');
 }
 
 
