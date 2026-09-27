@@ -271,6 +271,28 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
   - **Đưa `gemini-3.5-flash-lite` lên ưu tiên số 1:** Mô hình siêu nhẹ, phản hồi cực nhanh (~1.5–3s) và độ chính xác cao cho JSON dictionary schema.
   - **Rút ngắn Timeout xuống 8s:** Giảm thời gian chờ failover nếu gặp model bận hoặc lỗi mạng.
 
+### 22. Kiến trúc Streaming 2 Giai đoạn — hiện kết quả ngay trong ~1.5s
+- **Mục tiêu:** Người dùng thấy thẻ từ hiện ra ngay sau ~1.5s thay vì chờ trống màn hình 5-10s.
+- **Kiến trúc mới:**
+  - **[NEW] `app/api/words/fast/route.ts`:** Endpoint trả về 4 trường cốt lõi (`meaning_vi`, `ipa`, `cefr_level`, `part_of_speech`) trong ~1–2s. Dùng prompt siêu ngắn + schema 4 trường → AI phản hồi cực nhanh.
+  - **[MODIFY] `lib/ai/gemini.ts`:**
+    - Tách thành 2 hàm: `enrichWordFast()` (4 trường, schema nhỏ) và `enrichWordWithGemini()` (đầy đủ 12 trường).
+    - Thêm **in-memory cache 5 phút**: Từ vừa tra lại ngay → 0ms, không gọi AI lại.
+    - Rút gọn prompt full từ ~900 ký tự xuống còn ~550 ký tự (format 1 dòng/trường).
+    - Tách `FAST_MODELS` (3 model) và `FULL_MODELS` (6 model) riêng biệt.
+  - **[MODIFY] `app/words/page.tsx`:** UI 2 giai đoạn:
+    1. Gọi `/api/words/fast` → thẻ hiện ngay ~1.5s với thông tin cơ bản + badge "Đang lưu..."
+    2. Đồng thời gọi `/api/words` → cập nhật chi tiết etymology, collocations, examples; badge đổi sang "Đã lưu ✓"
+    3. Skeleton loading animation trong khi đợi giai đoạn 2 (thay vì màn trống).
+- **Kết quả:**
+
+  | Tình huống | Trước | Sau |
+  |---|---|---|
+  | Từ mới — thấy thông tin đầu tiên | ~5–20s | **~1.5s** |
+  | Từ mới — đầy đủ chi tiết | ~5–20s | **~4–6s** |
+  | Từ đã có trong DB | ~300ms | ~300ms |
+  | Tra lại từ vừa xong (server cache) | ~300ms | **~0ms** |
+
 ---
 
 ## 5. Các bước tiếp theo (Next Steps / Roadmap)

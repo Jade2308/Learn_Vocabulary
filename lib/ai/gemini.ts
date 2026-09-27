@@ -18,40 +18,150 @@ const ALLOWED_TOPICS = [
 ];
 
 /**
- * Danh sách các mô hình Gemini theo thứ tự ưu tiên tốc độ.
- * Ưu tiên model nhẹ/nhanh nhất trước để giảm độ trễ.
- * Khi một mô hình hết lượt gọi (429) hoặc lỗi, tự động failover sang model kế tiếp.
+ * Danh sách model ưu tiên tốc độ (nhẹ → nặng).
+ * Fast API dùng top 3; Full API dùng toàn bộ làm fallback.
  */
-const CANDIDATE_MODELS = [
-  'gemini-3.5-flash-lite',     // Ưu tiên 1: Nhanh nhất, tiêu tốn ít tài nguyên nhất
-  'gemini-3.5-flash',          // Ưu tiên 2: Ổn định, tốc độ cao
-  'gemini-3-flash-preview',    // Ưu tiên 3: Tốc độ tốt, hạn ngạch riêng
-  'gemini-3.6-flash',          // Ưu tiên 4: Dự phòng
-  'gemini-3.7-flash',          // Ưu tiên 5: Dự phòng nâng cao
-  'gemini-3.8-flash',          // Ưu tiên 6: Mạnh nhất, dùng khi các model trên đều bận
+const FAST_MODELS = [
+  'gemini-3.5-flash-lite',  // Nhanh nhất, đủ cho 4 trường cốt lõi
+  'gemini-3.5-flash',       // Dự phòng ổn định
+  'gemini-3-flash-preview', // Dự phòng thứ 3
 ];
 
+const FULL_MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-3-flash-preview',
+  'gemini-3.6-flash',
+  'gemini-3.7-flash',
+  'gemini-3.8-flash',
+];
+
+// ─────────────────────────────────────────────
+// In-memory cache (TTL 5 phút)
+// Giúp từ vừa tra ngay sau đó ra trong 0ms
+// ─────────────────────────────────────────────
+interface CacheEntry {
+  data: GeminiEnrichmentResponse;
+  ts: number;
+}
+const CACHE_TTL = 5 * 60 * 1000; // 5 phút
+const wordCache = new Map<string, CacheEntry>();
+
+function getCached(headword: string): GeminiEnrichmentResponse | null {
+  const entry = wordCache.get(headword);
+  if (entry && Date.now() - entry.ts < CACHE_TTL) {
+    return entry.data;
+  }
+  wordCache.delete(headword);
+  return null;
+}
+
+function setCached(headword: string, data: GeminiEnrichmentResponse): void {
+  wordCache.set(headword, { data, ts: Date.now() });
+}
+
+// ─────────────────────────────────────────────
+// Helper: gọi 1 model với timeout
+// ─────────────────────────────────────────────
+async function callModel(model: string, prompt: string, schema: object, timeoutMs: number): Promise<string> {
+  const response = await ai.models.generateContent({
+    model,
+    contents: prompt,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: schema,
+      thinkingConfig: { thinkingBudget: 0 },
+      abortSignal: AbortSignal.timeout(timeoutMs),
+    },
+  });
+  const text = response.text;
+  if (!text) throw new Error('Empty response from model');
+  return text;
+}
+
+// ─────────────────────────────────────────────
+// Helper: chạy tuần tự qua danh sách model (failover)
+// ─────────────────────────────────────────────
+async function runWithFailover(
+  models: string[],
+  prompt: string,
+  schema: object,
+  timeoutMs: number
+): Promise<string> {
+  let lastError: unknown = null;
+  for (const model of models) {
+    try {
+      return await callModel(model, prompt, schema, timeoutMs);
+    } catch (err) {
+      lastError = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[AI Failover] ${model}: ${msg.slice(0, 80)}... → thử model tiếp theo`);
+    }
+  }
+  throw lastError ?? new Error('Tất cả model đều thất bại');
+}
+
+// ─────────────────────────────────────────────
+// Kiểu dữ liệu kết quả nhanh (4 trường cốt lõi)
+// ─────────────────────────────────────────────
+export interface FastEnrichmentResponse {
+  meaning_vi: string;
+  ipa: string;
+  cefr_level: string;
+  part_of_speech: string;
+}
+
+// ─────────────────────────────────────────────
+// Hàm 1: enrichWordFast — trả về 4 trường trong ~1-2s
+// Dùng prompt ngắn + schema nhỏ để AI phản hồi tức thì
+// ─────────────────────────────────────────────
+export async function enrichWordFast(headword: string): Promise<FastEnrichmentResponse> {
+  if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
+
+  const prompt = `Từ điển tiếng Anh-Việt. Từ: "${headword}". Trả về JSON với: meaning_vi (nghĩa tiếng Việt ngắn gọn nhất), ipa (phiên âm IPA chuẩn, ví dụ /ˈwɜːrd/), cefr_level (A1/A2/B1/B2/C1/C2), part_of_speech (noun/verb/adjective/adverb/...).`;
+
+  const schema = {
+    type: Type.OBJECT,
+    properties: {
+      meaning_vi: { type: Type.STRING },
+      ipa: { type: Type.STRING },
+      cefr_level: { type: Type.STRING },
+      part_of_speech: { type: Type.STRING },
+    },
+    required: ['meaning_vi', 'ipa', 'cefr_level', 'part_of_speech'],
+  };
+
+  const text = await runWithFailover(FAST_MODELS, prompt, schema, 7000);
+  return JSON.parse(text) as FastEnrichmentResponse;
+}
+
+// ─────────────────────────────────────────────
+// Hàm 2: enrichWordWithGemini — đầy đủ 12 trường
+// Dùng in-memory cache, fallback qua nhiều model
+// ─────────────────────────────────────────────
 export async function enrichWordWithGemini(headword: string): Promise<GeminiEnrichmentResponse> {
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not configured in .env.local');
+  if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
+
+  // Kiểm tra cache trước
+  const cached = getCached(headword);
+  if (cached) {
+    console.log(`[AI Cache] Hit for "${headword}" — 0ms`);
+    return cached;
   }
 
-  const prompt = `Bạn là một chuyên gia ngôn ngữ học và biên soạn từ điển tiếng Anh - tiếng Việt chuyên nghiệp.
-Hãy làm giàu dữ liệu toàn diện cho từ tiếng Anh sau: "${headword}".
-
-Yêu cầu chi tiết:
-1. "part_of_speech": Loại từ chính của từ này (ví dụ: "noun", "verb", "adjective", "adverb", "phrasal verb", "idiom", "preposition").
-2. "ipa": Phiên âm quốc tế IPA chuẩn xác của từ (ví dụ: "/rɪˈzjuːm/", "/ˈrez.ɪ.li.ənt/").
-3. "cefr_level": Cấp độ CEFR ước lượng chuẩn ("A1", "A2", "B1", "B2", "C1", "C2").
-4. "meaning_vi": Nghĩa tiếng Việt chuẩn, súc tích, phổ biến nhất của từ này.
-5. "word_etymology": Phân tích ngắn gọn nguồn gốc và cấu tạo từ (Tiền tố + Gốc từ Latin/Hy Lạp + Hậu tố) và logic dẫn tới nghĩa hiện đại. Nếu từ thuần Anh cổ hoặc từ đơn giản không ghép, giải thích ngắn gọn nguồn gốc hình thành từ.
-6. "collocations": 2 đến 3 cụm từ kết hợp tự nhiên thông dụng nhất kèm nghĩa tiếng Việt (để mảng rỗng [] nếu không có).
-7. "synonyms": 2 đến 3 từ đồng nghĩa thông dụng (để mảng rỗng [] nếu không có).
-8. "antonyms": 1 đến 2 từ trái nghĩa tiêu biểu (để mảng rỗng [] nếu không có).
-9. "word_family": Danh sách họ từ liên quan (verb, noun, adjective, adverb) kèm nghĩa tiếng Việt (để mảng rỗng [] nếu không có).
-10. "prepositions": Các cụm giới từ hoặc cấu trúc thông dụng đi kèm với từ này (pattern, giải thích nghĩa và 1 ví dụ tiếng Anh, để mảng rỗng [] nếu từ không đi kèm giới từ đặc thù).
-11. "examples": 2 đến 3 câu ví dụ song ngữ tự nhiên, thông dụng (en: tiếng Anh, vi: bản dịch tiếng Việt).
-12. "topics": Chọn từ 1 đến 3 chủ đề phù hợp nhất từ danh sách sau: [${ALLOWED_TOPICS.map((t) => `"${t}"`).join(', ')}]. Không tự ý tạo chủ đề ngoài danh sách.`;
+  const prompt = `Từ điển Anh-Việt chuyên nghiệp. Từ: "${headword}". JSON với các trường:
+1. part_of_speech: loại từ (noun/verb/adjective/adverb/phrasal verb/idiom)
+2. ipa: phiên âm IPA chuẩn (ví dụ /ˈwɜːrd/)
+3. cefr_level: cấp độ A1/A2/B1/B2/C1/C2
+4. meaning_vi: nghĩa tiếng Việt súc tích nhất
+5. word_etymology: nguồn gốc từ Latin/Greek ngắn gọn (1-2 câu)
+6. collocations: 2-3 cụm từ thông dụng [{phrase, meaning_vi}], [] nếu không có
+7. synonyms: 2-3 từ đồng nghĩa [], [] nếu không có
+8. antonyms: 1-2 từ trái nghĩa [], [] nếu không có
+9. word_family: các dạng từ [{part_of_speech, word, meaning_vi}], [] nếu không có
+10. prepositions: giới từ đi kèm [{pattern, explanation, example}], [] nếu không có
+11. examples: 2 câu ví dụ [{en, vi}]
+12. topics: 1-3 chủ đề từ [${ALLOWED_TOPICS.map((t) => `"${t}"`).join(', ')}]`;
 
   const schema = {
     type: Type.OBJECT,
@@ -73,14 +183,8 @@ Yêu cầu chi tiết:
           required: ['phrase', 'meaning_vi'],
         },
       },
-      synonyms: {
-        type: Type.ARRAY,
-        items: { type: Type.STRING },
-      },
-      antonyms: {
-        type: Type.ARRAY,
-        items: { type: Type.STRING },
-      },
+      synonyms: { type: Type.ARRAY, items: { type: Type.STRING } },
+      antonyms: { type: Type.ARRAY, items: { type: Type.STRING } },
       word_family: {
         type: Type.ARRAY,
         items: {
@@ -116,59 +220,20 @@ Yêu cầu chi tiết:
           required: ['en', 'vi'],
         },
       },
-      topics: {
-        type: Type.ARRAY,
-        items: { type: Type.STRING },
-      },
+      topics: { type: Type.ARRAY, items: { type: Type.STRING } },
     },
     required: [
-      'headword',
-      'part_of_speech',
-      'ipa',
-      'cefr_level',
-      'meaning_vi',
-      'word_etymology',
-      'collocations',
-      'synonyms',
-      'antonyms',
-      'word_family',
-      'prepositions',
-      'examples',
-      'topics',
+      'headword', 'part_of_speech', 'ipa', 'cefr_level', 'meaning_vi',
+      'word_etymology', 'collocations', 'synonyms', 'antonyms',
+      'word_family', 'prepositions', 'examples', 'topics',
     ],
   };
 
-  let lastError: unknown = null;
+  const text = await runWithFailover(FULL_MODELS, prompt, schema, 8000);
+  const result = JSON.parse(text) as GeminiEnrichmentResponse;
 
-  for (const model of CANDIDATE_MODELS) {
-    try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: schema,
-          thinkingConfig: {
-            thinkingBudget: 0, // Tắt thinking hoàn toàn – không cần thiết cho tra từ
-          },
-          abortSignal: AbortSignal.timeout(8000), // Tối đa 8s cho mỗi model
-        },
-      });
+  // Lưu vào cache
+  setCached(headword, result);
 
-      const responseText = response.text;
-      if (!responseText) {
-        throw new Error('Gemini API returned an empty response');
-      }
-
-      return JSON.parse(responseText) as GeminiEnrichmentResponse;
-    } catch (err: unknown) {
-      lastError = err;
-      const errString = err instanceof Error ? err.message : String(err);
-      console.warn(`[AI Failover] Model ${model} gặp sự cố (${errString.slice(0, 100)}...). Chuyển ngay lập tức sang model kế tiếp...`);
-      // Lập tức failover sang model kế tiếp trong candidate list mà không lặp lại vô ích
-      continue;
-    }
-  }
-
-  throw lastError || new Error('Không thể kết nối với dịch vụ AI. Vui lòng thử lại sau.');
+  return result;
 }
