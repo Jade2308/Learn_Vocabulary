@@ -18,21 +18,13 @@ const ALLOWED_TOPICS = [
 ];
 
 /**
- * Cấu hình model theo chiến lược 2 giai đoạn:
- * - Giai đoạn 1 (Fast API): gemini-3.5-flash-lite (hiển thị tức thì ~1.1s)
- * - Giai đoạn 2 (Full API): gemini-3.8-flash (nhanh ~2.6s, rẻ hơn 50%, thông minh nhất)
+ * Cấu hình model cố định theo chiến lược 2 giai đoạn:
+ * - Giai đoạn 1 (Fast API): cố định duy nhất 'gemini-3.5-flash-lite'
+ * - Giai đoạn 2 (Full API): cố định duy nhất 'gemini-3.8-flash'
+ * Không tự động chuyển đổi sang model khác khi chờ lâu hoặc gặp lỗi.
  */
-const FAST_MODELS = [
-  'gemini-3.5-flash-lite',  // Ưu tiên 1: Tối ưu dịch nghĩa, IPA, CEFR siêu nhanh (~1.1s)
-  'gemini-3.8-flash',       // Dự phòng 1: Model mới nhất, rất nhanh (~2.6s)
-  'gemini-3.5-flash',       // Dự phòng 2
-];
-
-const FULL_MODELS = [
-  'gemini-3.8-flash',       // Ưu tiên 1: Mới nhất, nhanh (~2.6s), rẻ hơn 50% ($0.75/$3.75)
-  'gemini-3.5-flash-lite',  // Dự phòng 1: Siêu nhanh (~2.7s)
-  'gemini-3.5-flash',       // Dự phòng 2
-];
+const FAST_MODEL = 'gemini-3.5-flash-lite';
+const FULL_MODEL = 'gemini-3.8-flash';
 
 // ─────────────────────────────────────────────
 // In-memory cache (TTL 5 phút)
@@ -77,47 +69,32 @@ async function callModel(model: string, prompt: string, schema: object, timeoutM
 }
 
 // ─────────────────────────────────────────────
-// Helper: chạy tuần tự qua danh sách model (failover)
+// Helper: gọi model trực tiếp, không chuyển đổi model khác
 // Phân loại lỗi để frontend hiển thị thông báo chính xác
 // ─────────────────────────────────────────────
-async function runWithFailover(
-  models: string[],
+async function executeModelCall(
+  model: string,
   prompt: string,
   schema: object,
   timeoutMs: number
 ): Promise<string> {
-  let rateLimitCount = 0;
-  let timeoutCount = 0;
-  let serverOverloadCount = 0;
-  let lastError: unknown = null;
+  try {
+    return await callModel(model, prompt, schema, timeoutMs);
+  } catch (err) {
+    const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+    console.error(`[AI Error] ${model}:`, msg);
 
-  for (const model of models) {
-    try {
-      return await callModel(model, prompt, schema, timeoutMs);
-    } catch (err) {
-      lastError = err;
-      const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
-      const isRateLimit = msg.includes('429') || msg.includes('resource_exhausted') || msg.includes('quota');
-      const isTimeout = msg.includes('timed out') || (msg.includes('abort') && !msg.includes('unavailable'));
-      const isServerDown = msg.includes('503') || msg.includes('unavailable') || msg.includes('high demand');
-      if (isRateLimit) rateLimitCount++;
-      else if (isTimeout) timeoutCount++;
-      else if (isServerDown) serverOverloadCount++;
-      console.warn(`[AI Failover] ${model}: ${isRateLimit ? '429 RateLimit' : isTimeout ? 'Timeout' : isServerDown ? '503 Overload' : 'Error'} → thử model tiếp theo`);
+    if (msg.includes('503') || msg.includes('unavailable') || msg.includes('high demand')) {
+      throw new Error('SERVER_OVERLOAD');
     }
+    if (msg.includes('429') || msg.includes('resource_exhausted') || msg.includes('quota')) {
+      throw new Error('RATE_LIMIT');
+    }
+    if (msg.includes('timed out') || (msg.includes('abort') && !msg.includes('unavailable'))) {
+      throw new Error('TIMEOUT');
+    }
+    throw err;
   }
-
-  // Ném lỗi phân loại rõ để frontend xử lý đúng
-  if (serverOverloadCount > 0) {
-    throw new Error('SERVER_OVERLOAD');
-  }
-  if (rateLimitCount === models.length) {
-    throw new Error('RATE_LIMIT');
-  }
-  if (timeoutCount > 0) {
-    throw new Error('TIMEOUT');
-  }
-  throw new Error('ALL_FAILED');
 }
 
 
@@ -151,7 +128,7 @@ export async function enrichWordFast(headword: string): Promise<FastEnrichmentRe
     required: ['meaning_vi', 'ipa', 'cefr_level', 'part_of_speech'],
   };
 
-  const text = await runWithFailover(FAST_MODELS, prompt, schema, 7000);
+  const text = await executeModelCall(FAST_MODEL, prompt, schema, 8000);
   return JSON.parse(text) as FastEnrichmentResponse;
 }
 
@@ -244,7 +221,7 @@ export async function enrichWordWithGemini(headword: string): Promise<GeminiEnri
     ],
   };
 
-  const text = await runWithFailover(FULL_MODELS, prompt, schema, 15000);
+  const text = await executeModelCall(FULL_MODEL, prompt, schema, 20000);
   const result = JSON.parse(text) as GeminiEnrichmentResponse;
 
   // Lưu vào cache

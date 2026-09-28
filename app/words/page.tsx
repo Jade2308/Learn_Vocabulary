@@ -47,7 +47,7 @@ export default function WordsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ headword: searchWord }),
-        signal: AbortSignal.timeout(25000), // 3 model × 7s mỗi cái + buffer
+        signal: AbortSignal.timeout(12000), // gemini-3.5-flash-lite cố định (~1-2s)
       });
 
       if (!fastRes.ok) {
@@ -84,7 +84,7 @@ export default function WordsPage() {
       // ─────────────────────────────────────────────
       setLoadingFull(true);
       const controller = new AbortController();
-      const fullTimeoutId = setTimeout(() => controller.abort(), 35000);
+      const fullTimeoutId = setTimeout(() => controller.abort(), 25000); // gemini-3.8-flash cố định
 
       try {
         const fullRes = await fetch('/api/words', {

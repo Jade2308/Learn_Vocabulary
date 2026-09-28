@@ -303,14 +303,10 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
   - Tối ưu layout hiển thị `synonyms` trong [`app/words/page.tsx`](file:///d:/DATA/Learn_Vocabulary/app/words/page.tsx) tự động bung toàn bộ chiều rộng khi không còn `antonyms`.
   - Giảm đáng kể lượng tokens output của AI, giảm rủi ro timeout hoặc quá tải.
 
-### 24. Cấu hình cặp model tối ưu tuyệt đối (Đã test thành công 100% với Google API):
-- **Giai đoạn 1 (`FAST_MODELS`):**
-  - **Ưu tiên 1:** `gemini-3.5-flash-lite` (hoạt động cực nhanh ~1.1s, tối ưu nghĩa tiếng Việt & CEFR).
-  - **Dự phòng:** `gemini-3.8-flash` (~2.6s), `gemini-3.5-flash`.
-- **Giai đoạn 2 (`FULL_MODELS`):**
-  - **Ưu tiên 1:** `gemini-3.8-flash` (nhanh nhất ~2.6s, rẻ hơn 50% nhờ khuyến mãi của Google $0.75/$3.75, thông minh nhất).
-  - **Dự phòng:** `gemini-3.5-flash-lite` (~2.7s), `gemini-3.5-flash`.
-- **Lưu ý quan trọng:** Google đã ngắt hỗ trợ `gemini-2.5-flash` đối với các API key/project mới (báo lỗi 404 NOT_FOUND), do đó hệ thống chuyển hoàn toàn sang thế hệ 3.x (`3.5-flash-lite` và `3.8-flash`).
+### 24. Cấu hình cặp model cố định duy nhất (Không chuyển đổi / failover khi chờ lâu):
+- **Giai đoạn 1 (`FAST_MODEL`):** Cố định duy nhất `gemini-3.5-flash-lite` (trả về 4 trường cốt lõi siêu nhanh trong ~1s). Không chuyển sang model khác khi chờ lâu.
+- **Giai đoạn 2 (`FULL_MODEL`):** Cố định duy nhất `gemini-3.8-flash` (trả về 12 trường đầy đủ, chất lượng từ điển cao nhất). Không chuyển sang model khác khi chờ lâu.
+- **Bỏ hoàn toàn cơ chế failover / retry chéo:** Mỗi giai đoạn chỉ gọi đúng 1 model duy nhất được chỉ định, giúp kiểm soát chính xác 100% số lượng request, tránh việc Google quá tải sinh thêm retry sang model khác ngoài ý muốn.
 
 ### 25. Luôn hiển thị nút phát âm cho từ chính (Headword)
 - **Vấn đề:** Trước đây nút phát âm cạnh từ chính bị bọc bởi điều kiện `{displayWord.audio_url && ...}`. Nếu từ điển bên thứ ba chưa trả về audio MP3 kịp (hoặc ở Giai đoạn 1 khi chưa có link MP3), nút loa phát âm bị ẩn hoàn toàn dù họ từ (word family) vẫn có nút loa.
