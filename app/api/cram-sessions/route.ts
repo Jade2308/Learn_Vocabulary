@@ -21,8 +21,13 @@ export async function POST(req: NextRequest) {
       `)
       .eq('user_id', userId);
 
-    if (Array.isArray(word_ids) && word_ids.length > 0) {
-      query = query.in('word_id', word_ids);
+    const hasSpecificWords = Array.isArray(word_ids) && word_ids.length > 0;
+    if (hasSpecificWords) {
+      const sanitizedIds = word_ids
+        .filter((id: unknown) => typeof id === 'string' && /^[0-9a-fA-F-]+$/.test(id));
+      if (sanitizedIds.length > 0) {
+        query = query.or(`word_id.in.(${sanitizedIds.join(',')}),id.in.(${sanitizedIds.join(',')})`);
+      }
     }
 
     const { data: userVocabs, error } = await query;
@@ -32,7 +37,8 @@ export async function POST(req: NextRequest) {
     }
 
     let filtered = userVocabs || [];
-    if (topic && typeof topic === 'string') {
+    // Chỉ lọc theo topic nếu người dùng KHÔNG chỉ định danh sách từ cụ thể
+    if (!hasSpecificWords && topic && typeof topic === 'string') {
       filtered = filtered.filter((uv: any) => {
         const wordTopics: string[] = uv.words?.topics || [];
         return wordTopics.includes(topic);
@@ -42,7 +48,7 @@ export async function POST(req: NextRequest) {
     if (filtered.length === 0) {
       return NextResponse.json({
         words: [],
-        message: 'Không tìm thấy từ vựng nào phù hợp để ôn gấp',
+        message: 'Không tìm thấy từ vựng nào phù hợp để luyện tập',
       });
     }
 

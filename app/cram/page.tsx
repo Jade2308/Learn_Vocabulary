@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Zap,
@@ -21,9 +21,19 @@ import {
   Lightbulb,
   Check,
   Sparkles,
+  Search,
+  X,
+  CheckSquare,
+  Square,
+  Filter,
+  CheckCheck,
+  MousePointerClick,
+  Tag,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { playAudio } from '@/lib/audio';
+import { extractWordMetadata, getCefrBadgeStyle } from '@/lib/vocab-helper';
+import { UserVocabulary } from '@/types/db';
 
 interface CramWord {
   user_vocabulary_id: string;
@@ -67,6 +77,18 @@ const DEFAULT_DISTRACTORS = [
 export default function CramPage() {
   const [topics, setTopics] = useState<Array<{ name: string; count: number }>>([]);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
+  const [allUserWords, setAllUserWords] = useState<UserVocabulary[]>([]);
+  const [loadingWords, setLoadingWords] = useState(false);
+
+  // Chế độ chọn từ: 'custom' (tự chọn từng từ cụ thể) hoặc 'all_or_topic' (toàn bộ theo chủ đề)
+  const [selectionMode, setSelectionMode] = useState<'custom' | 'all_or_topic'>('custom');
+  const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(new Set());
+
+  // Bộ lọc cho danh sách từ vựng khi tự chọn
+  const [wordSearchQuery, setWordSearchQuery] = useState('');
+  const [customTopicFilter, setCustomTopicFilter] = useState('');
+  const [customLevelFilter, setCustomLevelFilter] = useState<'all' | 'unlearned' | 'selected'>('all');
+
   const [words, setWords] = useState<CramWord[]>([]);
   const [loading, setLoading] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
@@ -103,11 +125,37 @@ export default function CramPage() {
 
   useEffect(() => {
     fetchTopics();
+
+    // 1. Tải nhanh từ LocalStorage cache (0ms)
+    try {
+      const cached = localStorage.getItem('cached_all_words');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAllUserWords(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading cached words:', e);
+    }
+
+    // 2. Tải danh sách từ vựng mới nhất từ server
+    fetchUserWords();
+
+    // 3. Đọc query params từ URL nếu có
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const topicParam = params.get('topic');
-      if (topicParam) {
+      const wordIdParam = params.get('word_id') || params.get('words') || params.get('ids');
+
+      if (wordIdParam) {
+        setSelectionMode('custom');
+        const ids = wordIdParam.split(',').map((s) => s.trim()).filter(Boolean);
+        setSelectedWordIds(new Set(ids));
+      } else if (topicParam) {
         setSelectedTopic(topicParam);
+        setCustomTopicFilter(topicParam);
+        setSelectionMode('all_or_topic');
       }
     }
   }, []);
@@ -124,13 +172,141 @@ export default function CramPage() {
     }
   };
 
+  const fetchUserWords = async () => {
+    setLoadingWords(true);
+    try {
+      const res = await fetch('/api/words');
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setAllUserWords(data);
+        try {
+          localStorage.setItem('cached_all_words', JSON.stringify(data));
+        } catch {}
+      }
+    } catch (err) {
+      console.error('Error fetching user words:', err);
+    } finally {
+      setLoadingWords(false);
+    }
+  };
+
+  // Kiểm tra từ đã được chọn chưa
+  const isWordSelected = (item: UserVocabulary) => {
+    const wordKey = item.word_id || item.id;
+    return (
+      selectedWordIds.has(wordKey) ||
+      (item.id ? selectedWordIds.has(item.id) : false) ||
+      (item.word?.id ? selectedWordIds.has(item.word.id) : false) ||
+      (item.words?.id ? selectedWordIds.has(item.words.id) : false)
+    );
+  };
+
+  // Bật/tắt chọn từ
+  const toggleSelectWord = (item: UserVocabulary) => {
+    const wordKey = item.word_id || item.id;
+    setSelectedWordIds((prev) => {
+      const next = new Set(prev);
+      const active = isWordSelected(item);
+      if (active) {
+        next.delete(wordKey);
+        if (item.id) next.delete(item.id);
+        if (item.word?.id) next.delete(item.word.id);
+        if (item.words?.id) next.delete(item.words.id);
+      } else {
+        next.add(wordKey);
+      }
+      return next;
+    });
+  };
+
+  // Danh sách từ đã lọc theo ô tìm kiếm, chủ đề và trạng thái
+  const filteredUserWords = useMemo(() => {
+    return allUserWords.filter((item) => {
+      const currentWord = item.word || item.words;
+      if (!currentWord) return false;
+
+      // 1. Tìm kiếm theo từ khóa
+      if (wordSearchQuery.trim()) {
+        const q = wordSearchQuery.trim().toLowerCase();
+        const headword = (currentWord.headword || '').toLowerCase();
+        const meaning = (currentWord.meaning_vi || '').toLowerCase();
+        const wordTopics = (currentWord.topics || []).join(' ').toLowerCase();
+        if (!headword.includes(q) && !meaning.includes(q) && !wordTopics.includes(q)) {
+          return false;
+        }
+      }
+
+      // 2. Lọc theo chủ đề
+      if (customTopicFilter) {
+        const wordTopics: string[] = currentWord.topics || [];
+        if (!wordTopics.includes(customTopicFilter)) {
+          return false;
+        }
+      }
+
+      // 3. Lọc theo trạng thái
+      if (customLevelFilter === 'selected') {
+        return isWordSelected(item);
+      }
+      if (customLevelFilter === 'unlearned') {
+        return (item.repetition_level || 0) < 3;
+      }
+
+      return true;
+    });
+  }, [allUserWords, wordSearchQuery, customTopicFilter, customLevelFilter, selectedWordIds]);
+
+  // Các thao tác chọn nhanh
+  const handleSelectAllFiltered = () => {
+    setSelectedWordIds((prev) => {
+      const next = new Set(prev);
+      filteredUserWords.forEach((item) => {
+        const key = item.word_id || item.id;
+        next.add(key);
+      });
+      return next;
+    });
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedWordIds(new Set());
+  };
+
+  const handleSelectUnlearned = () => {
+    setSelectedWordIds((prev) => {
+      const next = new Set(prev);
+      allUserWords.forEach((item) => {
+        if ((item.repetition_level || 0) < 3) {
+          const key = item.word_id || item.id;
+          next.add(key);
+        }
+      });
+      return next;
+    });
+  };
+
   const startCramSession = async () => {
     setLoading(true);
     try {
+      const payload: { topic?: string; word_ids?: string[] } = {};
+
+      if (selectionMode === 'custom') {
+        if (selectedWordIds.size === 0) {
+          alert('Vui lòng chọn ít nhất 1 từ vựng để bắt đầu luyện tập!');
+          setLoading(false);
+          return;
+        }
+        payload.word_ids = Array.from(selectedWordIds);
+      } else {
+        if (selectedTopic) {
+          payload.topic = selectedTopic;
+        }
+      }
+
       const res = await fetch('/api/cram-sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: selectedTopic || undefined }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.words && data.words.length > 0) {
@@ -150,12 +326,29 @@ export default function CramPage() {
           initScrambleWord(shuffled[0]);
         }
       } else {
-        alert(data.message || 'Chưa có từ vựng nào trong chủ đề này để luyện tập!');
+        alert(data.message || 'Chưa có từ vựng nào phù hợp để luyện tập!');
       }
     } catch (err) {
       console.error('Error starting cram session:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRestartSession = () => {
+    if (words.length === 0) return;
+    const shuffled = [...words].sort(() => Math.random() - 0.5);
+    setWords(shuffled);
+    setCurrentIndex(0);
+    setScore(0);
+    setCompleted(false);
+    setMatchingRound(0);
+    resetTurn();
+
+    if (mode === 'matching') {
+      initMatchingRound(shuffled, 0);
+    } else if (mode === 'scramble') {
+      initScrambleWord(shuffled[0]);
     }
   };
 
@@ -404,7 +597,7 @@ export default function CramPage() {
     ];
 
     return (
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-6">
         <div className="text-center space-y-2">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 text-xs font-semibold">
             <Zap className="w-4 h-4" /> Luyện tập linh hoạt & Đa dạng
@@ -417,50 +610,391 @@ export default function CramPage() {
           </p>
         </div>
 
-        <div className="p-4 sm:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
-          {/* Chọn chủ đề */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                1. Chọn chủ đề từ vựng:
-              </label>
-              <span className="text-xs text-zinc-500">
-                {selectedTopic ? `Đang chọn: ${selectedTopic}` : 'Tất cả chủ đề'}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectedTopic('')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
-                  selectedTopic === ''
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                    : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
-                }`}
-              >
-                Tất cả từ vựng
-              </button>
-              {topics.map((t) => (
+        <div className="p-4 sm:p-7 rounded-2xl sm:rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-7">
+          {/* BƯỚC 1: CHỌN TỪ VỰNG ÔN TẬP */}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800 pb-3">
+              <div>
+                <label className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-black">
+                    1
+                  </span>
+                  Chọn từ vựng ôn tập:
+                </label>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Tự chọn các từ bạn muốn kiểm tra hoặc luyện tập toàn bộ theo chủ đề
+                </p>
+              </div>
+
+              {/* Segmented Control chuyển đổi chế độ chọn */}
+              <div className="inline-flex p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
                 <button
-                  key={t.name}
                   type="button"
-                  onClick={() => setSelectedTopic(t.name)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
-                    selectedTopic === t.name
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                      : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
+                  onClick={() => setSelectionMode('custom')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    selectionMode === 'custom'
+                      ? 'bg-white dark:bg-zinc-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
                   }`}
                 >
-                  {t.name} ({t.count})
+                  <MousePointerClick className="w-3.5 h-3.5" />
+                  <span>Tự chọn từng từ</span>
+                  {selectedWordIds.size > 0 && (
+                    <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold">
+                      {selectedWordIds.size}
+                    </span>
+                  )}
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setSelectionMode('all_or_topic')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    selectionMode === 'all_or_topic'
+                      ? 'bg-white dark:bg-zinc-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Theo chủ đề / Toàn bộ</span>
+                </button>
+              </div>
             </div>
+
+            {/* TAB 1: TỰ CHỌN TỪNG TỪ CẦN KIỂM TRA */}
+            {selectionMode === 'custom' && (
+              <div className="space-y-3 pt-1">
+                {/* Thanh tìm kiếm & bộ lọc trạng thái */}
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={wordSearchQuery}
+                      onChange={(e) => setWordSearchQuery(e.target.value)}
+                      placeholder="Tìm từ tiếng Anh, nghĩa tiếng Việt..."
+                      className="w-full pl-9 pr-9 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/50 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                    />
+                    {wordSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setWordSearchQuery('')}
+                        className="p-1 text-zinc-400 hover:text-zinc-600 absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl shrink-0 overflow-x-auto">
+                    <button
+                      type="button"
+                      onClick={() => setCustomLevelFilter('all')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                        customLevelFilter === 'all'
+                          ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                          : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                      }`}
+                    >
+                      Tất cả ({allUserWords.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomLevelFilter('unlearned')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                        customLevelFilter === 'unlearned'
+                          ? 'bg-white dark:bg-zinc-900 text-amber-600 dark:text-amber-400 shadow-xs'
+                          : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                      }`}
+                    >
+                      Chưa thuộc
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomLevelFilter('selected')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                        customLevelFilter === 'selected'
+                          ? 'bg-white dark:bg-zinc-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                          : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                      }`}
+                    >
+                      Đã chọn ({selectedWordIds.size})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter chips theo chủ đề */}
+                {topics.length > 0 && (
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                    <span className="text-[11px] text-zinc-400 font-medium shrink-0 flex items-center gap-1">
+                      <Tag className="w-3 h-3" /> Chủ đề:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCustomTopicFilter('')}
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all shrink-0 cursor-pointer ${
+                        customTopicFilter === ''
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                      }`}
+                    >
+                      Tất cả
+                    </button>
+                    {topics.map((t) => (
+                      <button
+                        key={t.name}
+                        type="button"
+                        onClick={() => setCustomTopicFilter(customTopicFilter === t.name ? '' : t.name)}
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all shrink-0 cursor-pointer ${
+                          customTopicFilter === t.name
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                        }`}
+                      >
+                        {t.name} ({t.count})
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Thanh công cụ tác vụ nhanh */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                      Đã chọn:
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full font-bold text-xs ${
+                        selectedWordIds.size > 0
+                          ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400'
+                      }`}
+                    >
+                      {selectedWordIds.size} từ
+                    </span>
+                    {filteredUserWords.length !== allUserWords.length && (
+                      <span className="text-zinc-400 text-[11px] hidden sm:inline">
+                        (Khớp {filteredUserWords.length} từ)
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {filteredUserWords.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleSelectAllFiltered}
+                        className="px-2.5 py-1 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-medium transition-colors cursor-pointer"
+                        title="Chọn tất cả từ đang hiển thị"
+                      >
+                        Chọn tất cả ({filteredUserWords.length})
+                      </button>
+                    )}
+                    {selectedWordIds.size > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleDeselectAll}
+                        className="px-2.5 py-1 rounded-lg text-zinc-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-medium transition-colors cursor-pointer"
+                        title="Bỏ chọn toàn bộ"
+                      >
+                        Bỏ chọn
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleSelectUnlearned}
+                      className="hidden sm:inline-block px-2.5 py-1 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 font-medium transition-colors cursor-pointer"
+                      title="Chọn nhanh các từ chưa thuộc vững"
+                    >
+                      Chỉ từ chưa thuộc
+                    </button>
+                  </div>
+                </div>
+
+                {/* Danh sách từ vựng dạng bảng chọn */}
+                <div className="max-h-72 sm:max-h-80 overflow-y-auto space-y-1.5 p-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 divide-y divide-zinc-100 dark:divide-zinc-800/60">
+                  {loadingWords && allUserWords.length === 0 ? (
+                    <div className="py-10 text-center space-y-2">
+                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-600" />
+                      <p className="text-xs text-zinc-500">Đang tải danh sách từ vựng...</p>
+                    </div>
+                  ) : filteredUserWords.length === 0 ? (
+                    <div className="py-10 text-center space-y-2">
+                      <Search className="w-6 h-6 mx-auto text-zinc-400" />
+                      <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                        {wordSearchQuery || customTopicFilter
+                          ? 'Không tìm thấy từ vựng phù hợp với bộ lọc'
+                          : 'Kho từ vựng của bạn chưa có từ nào'}
+                      </p>
+                      {(wordSearchQuery || customTopicFilter || customLevelFilter !== 'all') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWordSearchQuery('');
+                            setCustomTopicFilter('');
+                            setCustomLevelFilter('all');
+                          }}
+                          className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-medium cursor-pointer"
+                        >
+                          Xóa bộ lọc để xem tất cả từ
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    filteredUserWords.map((item) => {
+                      const cur = item.word || item.words;
+                      if (!cur) return null;
+                      const isChecked = isWordSelected(item);
+                      const { pureMeaning, pos, cefr } = extractWordMetadata(cur);
+
+                      return (
+                        <div
+                          key={item.id || cur.id}
+                          onClick={() => toggleSelectWord(item)}
+                          className={`p-3 rounded-xl transition-all flex items-center justify-between gap-3 cursor-pointer select-none group ${
+                            isChecked
+                              ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800/80 shadow-2xs'
+                              : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50 border border-transparent'
+                          }`}
+                        >
+                          {/* Checkbox & Thông tin chính */}
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="shrink-0 text-emerald-600 dark:text-emerald-400 transition-transform group-hover:scale-110">
+                              {isChecked ? (
+                                <CheckSquare className="w-5 h-5 fill-emerald-100 dark:fill-emerald-950 text-emerald-600 dark:text-emerald-400" />
+                              ) : (
+                                <Square className="w-5 h-5 text-zinc-300 dark:text-zinc-600" />
+                              )}
+                            </div>
+
+                            <div className="space-y-0.5 flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span
+                                  className={`font-bold text-sm sm:text-base capitalize transition-colors ${
+                                    isChecked
+                                      ? 'text-emerald-900 dark:text-emerald-200'
+                                      : 'text-zinc-900 dark:text-zinc-100 group-hover:text-emerald-600'
+                                  }`}
+                                >
+                                  {cur.headword}
+                                </span>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    playAudio(cur.headword, cur.audio_url);
+                                  }}
+                                  className="p-1 rounded-md text-zinc-400 hover:text-emerald-600 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/50 transition-colors cursor-pointer"
+                                  title="Nghe phát âm"
+                                >
+                                  <Volume2 className="w-3.5 h-3.5" />
+                                </button>
+
+                                {pos && (
+                                  <span className="px-1.5 py-0.2 rounded-md text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
+                                    {pos}
+                                  </span>
+                                )}
+                                {cefr && (
+                                  <span
+                                    className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold uppercase tracking-wider border ${getCefrBadgeStyle(
+                                      cefr
+                                    )}`}
+                                  >
+                                    {cefr}
+                                  </span>
+                                )}
+                                {cur.ipa && (
+                                  <span className="text-[11px] text-zinc-400 font-mono hidden sm:inline">
+                                    /{cur.ipa}/
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium line-clamp-1">
+                                {pureMeaning || cur.meaning_vi}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Cột phải: Badge cấp độ & chủ đề */}
+                          <div className="flex items-center gap-2 shrink-0">
+                            {cur.topics && cur.topics[0] && (
+                              <span className="hidden md:inline-block text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                                {cur.topics[0]}
+                              </span>
+                            )}
+                            <span
+                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                item.repetition_level >= 3
+                                  ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                                  : item.repetition_level > 0
+                                  ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
+                                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                              }`}
+                            >
+                              {item.repetition_level >= 3
+                                ? 'Thuộc vững'
+                                : item.repetition_level > 0
+                                ? `Cấp ${item.repetition_level}`
+                                : 'Từ mới'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: THEO CHỦ ĐỀ HOẶC TOÀN BỘ */}
+            {selectionMode === 'all_or_topic' && (
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center justify-between text-xs text-zinc-500">
+                  <span>Chọn nhóm chủ đề bạn muốn luyện tập:</span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                    {selectedTopic ? `Đang chọn: ${selectedTopic}` : 'Tất cả từ vựng'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTopic('')}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+                      selectedTopic === ''
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                        : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
+                    }`}
+                  >
+                    Tất cả từ vựng ({allUserWords.length})
+                  </button>
+                  {topics.map((t) => (
+                    <button
+                      key={t.name}
+                      type="button"
+                      onClick={() => setSelectedTopic(t.name)}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+                        selectedTopic === t.name
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                          : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
+                      }`}
+                    >
+                      {t.name} ({t.count})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Chọn dạng bài tập */}
+          {/* BƯỚC 2: CHỌN DẠNG BÀI TẬP */}
           <div className="space-y-3">
-            <label className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-              2. Chọn chế độ luyện tập:
+            <label className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-black">
+                2
+              </span>
+              Chọn chế độ luyện tập:
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {modesList.map((m) => {
@@ -507,14 +1041,46 @@ export default function CramPage() {
             </div>
           </div>
 
-          <button
-            onClick={startCramSession}
-            disabled={loading}
-            className="w-full py-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
-            <span>Bắt đầu luyện tập ngay</span>
-          </button>
+          {/* NÚT BẮT ĐẦU LUYỆN TẬP */}
+          <div className="space-y-2 pt-1">
+            <button
+              onClick={startCramSession}
+              disabled={loading || (selectionMode === 'custom' && selectedWordIds.size === 0)}
+              className={`w-full py-4 rounded-2xl font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer ${
+                selectionMode === 'custom' && selectedWordIds.size === 0
+                  ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed shadow-none'
+                  : 'bg-amber-500 hover:bg-amber-600 text-white hover:shadow-lg hover:-translate-y-0.5'
+              }`}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Đang khởi tạo bài luyện tập...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="w-5 h-5" />
+                  <span>
+                    {selectionMode === 'custom'
+                      ? selectedWordIds.size > 0
+                        ? `Bắt đầu luyện tập (${selectedWordIds.size} từ đã chọn)`
+                        : 'Vui lòng chọn ít nhất 1 từ ở bước 1'
+                      : `Bắt đầu luyện tập ngay (${
+                          selectedTopic
+                            ? `${selectedTopic} • ${topics.find((t) => t.name === selectedTopic)?.count || 0} từ`
+                            : `${allUserWords.length} từ`
+                        })`}
+                  </span>
+                </>
+              )}
+            </button>
+
+            {selectionMode === 'custom' && selectedWordIds.size === 0 && (
+              <p className="text-center text-xs text-amber-600 dark:text-amber-400 font-medium">
+                💡 Hãy tích chọn các từ bạn muốn kiểm tra trong danh sách ở Bước 1.
+              </p>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -564,11 +1130,20 @@ export default function CramPage() {
 
         <div className="flex flex-col gap-2.5 pt-2">
           <button
+            type="button"
+            onClick={handleRestartSession}
+            className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>Luyện tập lại {words.length} từ này</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setSessionStarted(false)}
             className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
           >
-            <RotateCcw className="w-4 h-4" />
-            <span>Luyện tập chế độ khác</span>
+            <Layers className="w-4 h-4" />
+            <span>Đổi chế độ / Chọn từ khác</span>
           </button>
           <Link
             href="/review"

@@ -12,6 +12,7 @@ import {
   Award,
   Layers,
   ArrowRight,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Word, UserVocabulary } from '@/types/db';
@@ -472,17 +473,25 @@ export default function WordDetailModal({
             )}
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 sm:flex-initial px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-medium text-xs sm:text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-center"
+              className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-medium text-xs sm:text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-center"
             >
               Đóng
             </button>
             <Link
+              href={`/cram?word_id=${userVocab?.word_id || word.id}`}
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs sm:text-sm transition-colors shadow-sm cursor-pointer text-center"
+              title="Luyện tập cấp tốc riêng từ này với 6 chế độ"
+            >
+              <Zap className="w-4 h-4" />
+              <span>Luyện cấp tốc từ này</span>
+            </Link>
+            <Link
               href="/review"
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm transition-colors shadow-sm cursor-pointer text-center"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm transition-colors shadow-sm cursor-pointer text-center"
             >
               <Layers className="w-4 h-4" />
               <span>Ôn tập thông minh</span>
