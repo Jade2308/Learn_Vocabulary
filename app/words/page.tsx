@@ -7,10 +7,14 @@ import { playAudio } from '@/lib/audio';
 import { extractWordMetadata, getCefrBadgeStyle } from '@/lib/vocab-helper';
 import { FastEnrichmentResponse } from '@/lib/ai/gemini';
 
-// Dữ liệu nhanh (4 trường cốt lõi) từ /api/words/fast
-interface FastResult extends FastEnrichmentResponse {
+// Dữ liệu nhanh từ /api/words/fast (Giai đoạn 1: Azure Translator)
+interface FastResult {
   headword: string;
-  source: 'db' | 'ai_fast';
+  source: 'db' | 'ai_fast' | 'azure_fast';
+  meaning_vi: string;
+  ipa?: string | null;
+  cefr_level?: string | null;
+  part_of_speech?: string | null;
 }
 
 export default function WordsPage() {
@@ -39,15 +43,15 @@ export default function WordsPage() {
     setFullWord(null);
 
     // ─────────────────────────────────────────────
-    // GIAI ĐOẠN 1: Lấy kết quả nhanh (~1-2s)
-    // Hiện thẻ từ ngay với thông tin cốt lõi
+    // GIAI ĐOẠN 1: Lấy nghĩa tiếng Việt siêu tốc (~200-400ms)
+    // Dùng Azure Translator API (Gói F0)
     // ─────────────────────────────────────────────
     try {
       const fastRes = await fetch('/api/words/fast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ headword: searchWord }),
-        signal: AbortSignal.timeout(12000), // gemini-3.5-flash-lite cố định (~1-2s)
+        signal: AbortSignal.timeout(8000), // Azure Translator F0 phản hồi cực nhanh (~200-400ms)
       });
 
       if (!fastRes.ok) {
@@ -79,8 +83,8 @@ export default function WordsPage() {
       }
 
       // ─────────────────────────────────────────────
-      // GIAI ĐOẠN 2: Lấy chi tiết đầy đủ (~2-4s nữa)
-      // Cập nhật bổ sung etymology, collocations, examples...
+      // GIAI ĐOẠN 2: Lấy chi tiết đầy đủ (~2-4s)
+      // Gemini AI bổ sung IPA, CEFR, ví dụ, họ từ, giới từ, lưu DB
       // ─────────────────────────────────────────────
       setLoadingFull(true);
       const controller = new AbortController();
@@ -96,13 +100,13 @@ export default function WordsPage() {
 
         const fullData = await fullRes.json();
         if (!fullRes.ok) {
-          // Dữ liệu nhanh đã hiện, chỉ log lỗi phần chi tiết
+          // Nghĩa từ đã hiển thị từ Azure, chỉ log cảnh báo phần chi tiết
           console.warn('Full word fetch failed:', fullData.error);
         } else {
           setFullWord(fullData);
         }
       } catch (fullErr) {
-        // Không hiện lỗi cho user — phần fast đã hiện rồi
+        // Không chặn người dùng — phần nghĩa tiếng Việt từ Azure đã hiện rồi
         console.warn('Full enrichment error (non-critical):', fullErr);
       } finally {
         clearTimeout(fullTimeoutId);
@@ -115,14 +119,19 @@ export default function WordsPage() {
       setLoadingFull(false);
       const raw = err instanceof Error ? err.message : 'Có lỗi xảy ra';
 
-      if (raw.includes('SERVER_OVERLOAD') || raw.includes('503') || raw.includes('unavailable') || raw.includes('high demand')) {
-        setError('🔥 Máy chủ AI của Google đang quá tải. Đây là tình trạng tạm thời — vui lòng thử lại sau 10–20 giây!');
+      if (raw.includes('AZURE_TRANSLATOR_KEY_MISSING')) {
+        setError('⚠️ Chưa tìm thấy AZURE_TRANSLATOR_KEY trong file .env.local. Vui lòng thêm Azure Translator Key (Gói F0) để kích hoạt Giai đoạn 1!');
+      } else if (raw.includes('AZURE_TRANSLATOR_TIMEOUT')) {
+        setError('🔄 Kết nối tới Azure Translator bị timeout. Vui lòng kiểm tra mạng hoặc thử lại!');
+      } else if (raw.includes('AZURE_TRANSLATOR_ERROR')) {
+        setError('⚠️ Lỗi gọi Azure Translator API. Vui lòng kiểm tra lại Key và Region trong file .env.local!');
+      } else if (raw.includes('SERVER_OVERLOAD') || raw.includes('503') || raw.includes('unavailable') || raw.includes('high demand')) {
+        setError('🔥 Máy chủ AI đang quá tải. Vui lòng thử lại sau 10–20 giây!');
       } else if (raw.includes('RATE_LIMIT') || raw.includes('429') || raw.includes('quota') || raw.includes('resource_exhausted')) {
-        setError('⚠️ Đã đạt giới hạn API miễn phí trong phút này. Vui lòng đợi 30–60 giây rồi thử lại!');
+        setError('⚠️ Đã đạt giới hạn yêu cầu trong phút này. Vui lòng đợi 30–60 giây rồi thử lại!');
       } else if (raw.includes('TIMEOUT') || raw.includes('timed out')) {
-        setError('🔄 AI phản hồi chậm hơn bình thường. Hãy thử lại!');
+        setError('🔄 Hệ thống phản hồi chậm hơn bình thường. Hãy thử lại!');
       } else {
-        // Không hiện raw JSON — chỉ hiện thông báo chung
         setError('❌ Không thể tra từ vào lúc này. Vui lòng thử lại sau vài giây!');
       }
     }
@@ -205,14 +214,14 @@ export default function WordsPage() {
       {loadingFast && (
         <div className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-medium animate-pulse">
           <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-          <span>Đang tra cứu nghĩa và phiên âm...</span>
+          <span>Đang dịch nghĩa tiếng Việt siêu tốc (Azure Translator F0)...</span>
         </div>
       )}
 
       {loadingFull && fastResult && (
         <div className="flex items-center justify-center gap-2.5 py-2 px-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-medium">
           <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-          <span>Đang tải ví dụ, nguồn gốc từ &amp; collocations...</span>
+          <span>Đang bổ sung phiên âm, cấp độ CEFR, ví dụ &amp; họ từ (Gemini AI)...</span>
         </div>
       )}
 
@@ -271,7 +280,7 @@ export default function WordsPage() {
               ) : fastResult ? (
                 <span className="inline-flex self-start items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
                   <Zap className="w-3.5 h-3.5" />
-                  Đang lưu...
+                  Đã tải nghĩa (Azure) • Đang bổ sung...
                 </span>
               ) : null}
             </div>

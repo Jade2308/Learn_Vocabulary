@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
-import { enrichWordFast } from '@/lib/ai/gemini';
+import { translateWithAzure } from '@/lib/translator/azure';
 
 /**
  * POST /api/words/fast
  *
- * Trả về 4 trường cốt lõi của một từ trong ~1–2s:
- *   meaning_vi, ipa, cefr_level, part_of_speech
+ * GIAI ĐOẠN 1: Dùng Azure Translator API (Gói F0 - Free)
+ * Mục tiêu: Lấy nhanh nghĩa tiếng Việt (meaning_vi) trong ~200-400ms.
  *
- * Cách hoạt động:
- * 1. Kiểm tra từ đã có trong DB → trả về ngay nếu có
- * 2. Nếu chưa có → gọi AI với prompt siêu ngắn + schema 4 trường → trả về
- *
- * Frontend dùng endpoint này để hiện thẻ từ NGAY,
- * rồi gọi POST /api/words để lấy phần chi tiết bổ sung.
+ * Luồng xử lý:
+ * 1. Kiểm tra từ đã có trong DB toàn hệ thống (Supabase) chưa:
+ *    - Nếu có → Trả về ngay lập tức (< 200ms) kèm đầy đủ thông tin đã lưu.
+ * 2. Nếu là từ mới:
+ *    - Gọi Azure Translator để dịch sang tiếng Việt.
+ *    - Trả về kết quả ngay cho frontend để người dùng xem trước nghĩa.
+ *    - Giai đoạn 2 (POST /api/words) sẽ tự động chạy ngầm để bổ sung tất cả:
+ *      phiên âm IPA, cấp độ CEFR, họ từ, giới từ, ví dụ song ngữ, etymology...
  */
 export async function POST(req: NextRequest) {
   try {
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'headword cannot be empty' }, { status: 400 });
     }
 
-    // 1. Kiểm tra DB — nếu từ đã có, trả về ngay (< 300ms)
+    // 1. Kiểm tra DB — nếu từ đã có, trả về ngay
     const { data: existingWord } = await supabaseAdmin
       .from('words')
       .select('meaning_vi, ipa, cefr_level, part_of_speech')
@@ -50,17 +52,28 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2. Từ mới — gọi AI nhanh với schema siêu nhỏ (~1–2s)
-    const fastResult = await enrichWordFast(headword);
+    // 2. Từ mới — Gọi Azure Translator (Gói F0) lấy nghĩa tiếng Việt siêu tốc
+    const meaning_vi = await translateWithAzure(headword);
 
     return NextResponse.json({
-      source: 'ai_fast',
+      source: 'azure_fast',
       headword,
-      ...fastResult,
+      meaning_vi,
+      ipa: null,
+      cefr_level: null,
+      part_of_speech: null,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Internal Server Error';
-    console.error('[/api/words/fast] Error:', message);
+    console.error('[/api/words/fast] Azure Translator Error:', message);
+
+    if (message === 'AZURE_TRANSLATOR_KEY_MISSING') {
+      return NextResponse.json(
+        { error: 'AZURE_TRANSLATOR_KEY_MISSING' },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

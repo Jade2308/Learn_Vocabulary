@@ -22,17 +22,18 @@ Tài liệu này lưu lại trạng thái, tiến độ, các quyết định k�
   - Bảng `review_logs`: Ghi nhận lịch sử đánh giá (1-4).
   - Đã bật RLS (Row Level Security) và phân quyền policy cho từng bảng.
 
-### B. Core Utilities & Algorithms (`lib/`)
+- [`lib/translator/azure.ts`](file:///d:/DATA/Learn_Vocabulary/lib/translator/azure.ts): Tích hợp **Azure Translator API (Gói F0 - Free)** cho **Giai đoạn 1 (Fast Lookup)** — dịch nghĩa tiếng Việt siêu tốc (~200–400ms) với timeout 4s và xử lý mã lỗi chuyên dụng.
 - [`lib/srs.ts`](file:///d:/DATA/Learn_Vocabulary/lib/srs.ts): Cài đặt chuẩn thuật toán lặp ngắt quãng SM-2 (repetitionLevel, intervalDays, easeFactor, rating 1-4).
 - [`lib/dictionary.ts`](file:///d:/DATA/Learn_Vocabulary/lib/dictionary.ts): Tích hợp Free Dictionary API để lấy phiên âm chuẩn quốc tế (IPA) và tra cứu từ vựng.
-- [`lib/ai/gemini.ts`](file:///d:/DATA/Learn_Vocabulary/lib/ai/gemini.ts): Tích hợp Google Gen AI SDK với mô hình **`gemini-3.6-flash`** và Structured JSON Output (lấy nghĩa tiếng Việt, bảng họ từ, cụm giới từ cấu trúc, ví dụ song ngữ và gán nhãn chủ đề theo danh sách chuẩn).
+- [`lib/ai/gemini.ts`](file:///d:/DATA/Learn_Vocabulary/lib/ai/gemini.ts): Tích hợp Google Gen AI SDK với mô hình **`gemini-3.8-flash`** và Structured JSON Output (lấy nghĩa tiếng Việt, bảng họ từ, cụm giới từ cấu trúc, ví dụ song ngữ và gán nhãn chủ đề theo danh sách chuẩn cho Giai đoạn 2).
 - [`lib/audio.ts`](file:///d:/DATA/Learn_Vocabulary/lib/audio.ts): Sử dụng trực tiếp **Web Speech API** (`window.speechSynthesis`) với các giọng đọc tiếng Anh tự nhiên chất lượng cao (`Google US English`, `Microsoft Natural / Aria / Jenny / David`, `Samantha`), tốc độ đọc 0.95, triệt tiêu hoàn toàn độ trễ (0ms delay), hoạt động offline và chống lỗi paused/suspended ngầm trên trình duyệt Chromium.
 - [`lib/auth-helper.ts`](file:///d:/DATA/Learn_Vocabulary/lib/auth-helper.ts): Tự động trích xuất user từ Supabase Auth JWT hoặc đảm bảo demo user hợp lệ trong `auth.users` để trải nghiệm dev không bị chặn bởi foreign key.
 - [`lib/supabase/`](file:///d:/DATA/Learn_Vocabulary/lib/supabase/): Cấu hình Client (anon key cho browser) và Server (service role cho backend).
 - [`types/db.ts`](file:///d:/DATA/Learn_Vocabulary/types/db.ts): Định nghĩa kiểu dữ liệu TypeScript hoàn chỉnh cho toàn bộ hệ thống (`Word`, `UserVocabulary`, `GeminiEnrichmentResponse`, `WordFamilyItem`, `PrepositionItem`, `ExampleItem`, `DailyStudyStats`, `ReviewLog`).
 
 ### C. API Routes (`app/api/`)
-- `POST /api/words`: Chuẩn hóa headword $\rightarrow$ Dedupe toàn hệ thống $\rightarrow$ Gọi song song Gemini 3.6 Flash & Free Dictionary $\rightarrow$ Insert `words` $\rightarrow$ Upsert `user_vocabulary`.
+- `POST /api/words/fast`: **Giai đoạn 1 (Fast API)** — Kiểm tra DB toàn hệ thống $\rightarrow$ Nếu chưa có, gọi Azure Translator API (F0) lấy ngay nghĩa tiếng Việt (`meaning_vi`) trong ~200-400ms $\rightarrow$ Frontend render thẻ từ tức thì.
+- `POST /api/words`: **Giai đoạn 2 (Full API)** — Chạy ngầm bổ sung IPA, CEFR, Etymology, Word Family, Prepositions, Collocations, Examples song ngữ bằng Gemini $\rightarrow$ Insert vào `words` & Upsert vào `user_vocabulary`.
 - `GET /api/reviews/due`: Lấy danh sách từ vựng đến hạn ôn tập (`next_review_at <= NOW()`).
 - `POST /api/reviews/[id]`: Cập nhật SM-2 sau mỗi lần lật thẻ, ghi log vào `review_logs`, cập nhật số liệu `daily_study_stats`.
 - `GET /api/topics`: Thống kê danh sách các chủ đề và số từ vựng tương ứng của người dùng.

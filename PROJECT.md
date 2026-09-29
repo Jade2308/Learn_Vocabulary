@@ -23,8 +23,9 @@
 | Backend | Next.js API Routes (hoặc Supabase Edge Functions cho job nền) | Không dựng backend riêng |
 | Database + Auth | Supabase (PostgreSQL, Auth, RLS) | Auth qua Email + Google OAuth |
 | Từ điển cơ bản | Free Dictionary API — `https://api.dictionaryapi.dev/api/v2/entries/en/{word}` | Lấy IPA + audio_url, miễn phí, không cần key |
-| AI enrichment | Gemini 2.5 Flash API (Structured Output / JSON Schema) | Chỉ gọi 1 lần / từ mới duy nhất trong toàn hệ thống |
-| Audio fallback | Web Speech API (`window.speechSynthesis`) | Chạy phía client khi không có `audio_url` |
+| Dịch nhanh (Giai đoạn 1) | Azure Translator API (Gói F0 - Free) | Trả về nghĩa tiếng Việt tức thì (~200-400ms) |
+| AI enrichment (Giai đoạn 2) | Gemini API (`gemini-3.8-flash` Structured Output) | Bổ sung đầy đủ IPA, CEFR, ví dụ song ngữ, họ từ, giới từ, lưu DB |
+| Audio | Web Speech API (`window.speechSynthesis`) | Chạy phía client 0ms delay, chất lượng cao |
 | Hosting | Vercel | Deploy từ Git |
 
 **Không dùng:** dịch vụ TTS trả phí, dịch vụ embedding/clustering, backend riêng (Express/Nest...), ORM nặng nếu không cần thiết (ưu tiên Supabase client / SQL trực tiếp).
